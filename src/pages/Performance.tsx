@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useUserStore } from '../store/useUserStore';
 import { useLayoutStore } from '../store/useLayoutStore';
 import { 
@@ -68,6 +68,24 @@ export default function Performance() {
   const [activeTab, setActiveTab] = useState<TabId>('data');
   const [timeRange, setTimeRange] = useState('7d');
   const [isVisibilityConfigured, setIsVisibilityConfigured] = useState(false);
+  const isVisibilityActive = role === 'active' || isVisibilityConfigured;
+  const [visConfigOpen, setVisConfigOpen] = useState(false);
+  const [visFrequency, setVisFrequency] = useState<'1' | '3' | '7'>('3');
+  const [visPlatforms, setVisPlatforms] = useState<Record<PlatformId, boolean>>({
+    ChatGPT: true,
+    Claude: true,
+    Perplexity: true,
+    Gemini: false,
+    SearchGPT: false,
+  });
+  const [visFrequencyDraft, setVisFrequencyDraft] = useState<'1' | '3' | '7'>(visFrequency);
+  const [visPlatformsDraft, setVisPlatformsDraft] = useState<Record<PlatformId, boolean>>(visPlatforms);
+  useEffect(() => {
+    if (visConfigOpen) {
+      setVisFrequencyDraft(visFrequency);
+      setVisPlatformsDraft(visPlatforms);
+    }
+  }, [visConfigOpen, visFrequency, visPlatforms]);
   const [expandedKeywords, setExpandedKeywords] = useState<string[]>(['k1', 'k2']);
   const [selectedCell, setSelectedCell] = useState<{keyword: string, query: string, platform: string, status: string} | null>(null);
 
@@ -597,7 +615,7 @@ export default function Performance() {
                     </div>
                     
                     <div className="relative z-10 mt-2">
-                      <div className="text-3xl font-bold text-gray-900 tracking-tight">{isVisibilityConfigured ? <>72<span className="text-lg text-gray-400 font-medium">/100</span></> : '?'}</div>
+                      <div className="text-3xl font-bold text-gray-900 tracking-tight">{isVisibilityActive ? <>72<span className="text-lg text-gray-400 font-medium">/100</span></> : '?'}</div>
                       <div className="flex items-center gap-2 mt-2">
                         <span className="bg-green-50 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 border border-green-100">
                           <TrendingUp size={10} /> +5.2%
@@ -631,7 +649,7 @@ export default function Performance() {
                     </div>
 
                     <div className="relative z-10 mt-2">
-                      <div className="text-3xl font-bold text-gray-900 tracking-tight">{isVisibilityConfigured ? '85%' : '?'}</div>
+                      <div className="text-3xl font-bold text-gray-900 tracking-tight">{isVisibilityActive ? '85%' : '?'}</div>
                       <div className="flex items-center gap-2 mt-2">
                         <span className="bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 border border-indigo-100">
                           Positive
@@ -654,22 +672,26 @@ export default function Performance() {
                       </div>
                       {activeMetric === 'visibility' ? 'Visibility Trend' : 'Sentiment Trend'}
                     </h4>
-                    <select className="text-xs font-medium border border-gray-200 bg-gray-50 rounded-lg px-3 py-1.5 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 text-gray-700 transition-all cursor-pointer hover:bg-white hover:shadow-sm">
-                      <option>Last 7 Days</option>
-                      <option>Last 30 Days</option>
-                    </select>
+                    <div className="relative flex items-center gap-2">
+                      <select className="text-xs font-medium border border-gray-200 bg-gray-50 rounded-lg px-3 py-1.5 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 text-gray-700 transition-all cursor-pointer hover:bg-white hover:shadow-sm">
+                        <option>Last 7 Days</option>
+                        <option>Last 30 Days</option>
+                      </select>
+                      <button
+                        onClick={() => setVisConfigOpen((v) => !v)}
+                        className="p-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50"
+                        title="Visibility Settings"
+                      >
+                        <Settings size={16} />
+                      </button>
+                      
+                    </div>
                   </div>
                   
                 <div className="h-[260px] w-full relative z-10">
-                  {!isVisibilityConfigured && (
+                  {!isVisibilityActive && !visConfigOpen && (
                     <div className="absolute inset-0 bg-white/70 backdrop-blur-sm flex items-center justify-center z-20">
-                      <button
-                        onClick={() => {
-                          const el = document.getElementById('visibility-settings');
-                          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        }}
-                        className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 shadow-lg active:scale-95 flex items-center gap-2"
-                      >
+                      <button className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 shadow-lg active:scale-95 flex items-center gap-2">
                         <Settings size={16} /> Configure AI Visibility
                       </button>
                     </div>
@@ -706,9 +728,15 @@ export default function Performance() {
                         
                         {activeMetric === 'visibility' ? (
                           <>
-                            <Line type="monotone" dataKey="chatgpt" name="ChatGPT" stroke="#10a37f" strokeWidth={3} dot={false} activeDot={{ r: 6, strokeWidth: 0 }} />
-                            <Line type="monotone" dataKey="claude" name="Claude" stroke="#d97757" strokeWidth={3} dot={false} />
-                            <Line type="monotone" dataKey="perplexity" name="Perplexity" stroke="#22b8cf" strokeWidth={3} dot={false} />
+                            {visPlatforms.ChatGPT && (
+                              <Line type="monotone" dataKey="chatgpt" name="ChatGPT" stroke="#10a37f" strokeWidth={3} dot={false} activeDot={{ r: 6, strokeWidth: 0 }} />
+                            )}
+                            {visPlatforms.Claude && (
+                              <Line type="monotone" dataKey="claude" name="Claude" stroke="#d97757" strokeWidth={3} dot={false} />
+                            )}
+                            {visPlatforms.Perplexity && (
+                              <Line type="monotone" dataKey="perplexity" name="Perplexity" stroke="#22b8cf" strokeWidth={3} dot={false} />
+                            )}
                           </>
                         ) : (
                           <>
@@ -726,171 +754,7 @@ export default function Performance() {
           </div>
           
           <div className="mt-8 space-y-8">
-            <div id="visibility-settings" className="bg-white border border-gray-200 rounded-xl p-6">
-              <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-                <div className="w-8 h-8 bg-orange-100 text-orange-600 rounded-lg flex items-center justify-center">
-                  <BarChart2 size={18} />
-                </div>
-                GA4 Data Authorization
-              </h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600 mb-1">Connect your Google Analytics 4 account</p>
-                    <p className="text-xs text-gray-400">Required for organic traffic tracking</p>
-                  </div>
-                  <div className="flex gap-2 items-center">
-                    <button
-                      className="px-4 py-2 bg-black text-white font-medium rounded-lg hover:bg-gray-800 flex items-center gap-2"
-                      onClick={() => setGa4Selection('yes')}
-                    >
-                      <ExternalLink size={16} /> I have a GA4 account
-                    </button>
-                    <button
-                      className="px-4 py-2 bg-white border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50"
-                      onClick={() => setGa4Selection('no')}
-                    >
-                      I don’t have GA4
-                    </button>
-                    <div className="relative">
-                      <button
-                        className="px-2.5 py-1.5 border border-gray-300 rounded-lg text-xs text-gray-600 hover:bg-gray-50 inline-flex items-center gap-1"
-                        onClick={() => setGaDebugOpen(v => !v)}
-                        aria-haspopup="menu"
-                        aria-expanded={gaDebugOpen}
-                        title="Debug GA4 status"
-                      >
-                        <Settings size={14} />
-                        Debug
-                      </button>
-                      <span
-                        className={
-                          gaDebugStatus === 'not_connected'
-                            ? 'ml-2 text-[10px] px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-100'
-                            : gaDebugStatus === 'needs_change'
-                            ? 'ml-2 text-[10px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-100'
-                            : 'ml-2 text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100'
-                        }
-                      >
-                        {gaDebugStatus === 'not_connected' ? 'Not connected' : gaDebugStatus === 'needs_change' ? 'Connected (needs changes)' : 'Linking'}
-                      </span>
-                      {gaDebugOpen && (
-                        <div className="absolute right-0 mt-1 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
-                          <button
-                            className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50"
-                            onClick={() => {
-                              setGaDebugStatus('not_connected');
-                              setGaDebugOpen(false);
-                            }}
-                          >
-                            Not connected
-                          </button>
-                          <button
-                            className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50"
-                            onClick={() => {
-                              setGaDebugStatus('needs_change');
-                              setGaDebugOpen(false);
-                            }}
-                          >
-                            Connected (needs changes)
-                          </button>
-                          <button
-                            className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50"
-                            onClick={() => {
-                              setGaDebugStatus('linking');
-                              setGaDebugOpen(false);
-                            }}
-                          >
-                            Linking
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                {ga4Selection === 'no' && (
-                  <div className="space-y-3">
-                    <div>
-                      <h4 className="text-sm font-bold text-gray-900 mb-1">Choose your site platform</h4>
-                      <p className="text-xs text-gray-500">We’ll provide the appropriate connection steps</p>
-                    </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                      {['Shopify', 'WordPress', 'Webflow', 'Wix', 'Squarespace', 'Custom Site'].map((name) => (
-                        <label key={name} className="cursor-pointer">
-                          <input
-                            type="radio"
-                            name="sitePlatform"
-                            value={name}
-                            className="sr-only peer"
-                            onChange={() => setSitePlatform(name)}
-                          />
-                          <div className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 peer-checked:border-black peer-checked:bg-black/5">
-                            {name}
-                          </div>
-                        </label>
-                      ))}
-                    </div>
-                    <div className="flex justify-end">
-                      <button
-                        className="px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800 font-medium disabled:opacity-50"
-                        disabled={!sitePlatform}
-                        onClick={handleConfirmPlatform}
-                      >
-                        Confirm Platform
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="bg-white border border-gray-200 rounded-xl p-6">
-              <h3 className="font-bold text-lg mb-4">Monitoring Platforms</h3>
-              <div className="space-y-3">
-                {['ChatGPT', 'Claude', 'Gemini', 'Perplexity', 'SearchGPT'].map(platform => (
-                  <label key={platform} className="flex items-center justify-between p-3 border border-gray-100 rounded-lg hover:bg-gray-50 cursor-pointer">
-                    <span className="font-medium text-gray-700">{platform}</span>
-                    <input type="checkbox" defaultChecked className="w-5 h-5 text-primary rounded border-gray-300 focus:ring-primary" />
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div className="bg-white border border-gray-200 rounded-xl p-6">
-              <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-                <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center">
-                  <Clock size={18} />
-                </div>
-                Monitoring Frequency
-              </h3>
-              <div className="space-y-4">
-                <div className="bg-blue-50 border border-blue-100 text-blue-800 text-sm p-3 rounded-lg flex items-start gap-2">
-                  <Info size={16} className="mt-0.5 shrink-0" />
-                  <p>AI visibility scores typically don't change drastically day-to-day. We recommend a <span className="font-bold">3-day cycle</span> to optimize token usage and costs.</p>
-                </div>
-                
-                <div className="grid grid-cols-3 gap-3">
-                  {[
-                    { value: '1', label: 'Daily', desc: 'High frequency' },
-                    { value: '3', label: 'Every 3 Days', desc: 'Recommended' },
-                    { value: '7', label: 'Weekly', desc: 'Low frequency' }
-                  ].map((option) => (
-                    <label key={option.value} className="cursor-pointer relative group">
-                      <input type="radio" name="frequency" value={option.value} defaultChecked={option.value === '3'} className="peer sr-only" />
-                      <div className="border border-gray-200 rounded-xl p-4 hover:bg-gray-50 peer-checked:border-primary peer-checked:bg-primary/5 peer-checked:ring-1 peer-checked:ring-primary transition-all text-center h-full">
-                        <div className="font-bold text-gray-900 mb-1">{option.label}</div>
-                        <div className="text-xs text-gray-500">{option.desc}</div>
-                      </div>
-                      {option.value === '3' && (
-                        <div className="absolute -top-2 left-1/2 -translate-x-1/2 bg-green-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
-                          BEST VALUE
-                        </div>
-                      )}
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </div>
+            
 
             <div className="flex justify-end pt-2">
               <button className="bg-primary text-white px-8 py-3 rounded-xl font-bold hover:bg-primary/90 transition-all flex items-center gap-2 shadow-lg shadow-primary/20 active:scale-95">
@@ -915,19 +779,46 @@ export default function Performance() {
                    </tr>
                  </thead>
                  <tbody>
-                   {attributionData.map(group => {
-                     return (
+                  {attributionData.map(group => {
+                    let gMentioned = 0;
+                    let gTotal = 0;
+                    group.queries.forEach(q => {
+                      platforms.forEach(p => {
+                        const st = q.platforms?.[p.id];
+                        gTotal++;
+                        if (st && st !== 'not_mentioned') gMentioned++;
+                      });
+                    });
+                    const groupVisibility = gTotal > 0 ? Math.round((gMentioned / gTotal) * 100) : 0;
+                    return (
                      <React.Fragment key={group.id}>
                        {/* Keyword Row */}
                        <tr 
                          className="bg-gray-50 hover:bg-gray-100 cursor-pointer border-b border-gray-100 transition-colors"
                          onClick={() => toggleKeyword(group.id)}
                        >
-                         <td colSpan={4} className="p-4 font-bold text-gray-800 flex items-center gap-2">
-                           {expandedKeywords.includes(group.id) ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                           {group.keyword}
-                           <span className="text-xs font-normal text-gray-400 ml-2">({group.queries.length} queries)</span>
-                         </td>
+                        <td colSpan={4} className="p-4 font-bold text-gray-800">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              {expandedKeywords.includes(group.id) ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                              {group.keyword}
+                              <span className="text-xs font-normal text-gray-400 ml-2">({group.queries.length} queries)</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-gray-700">{groupVisibility}%</span>
+                              <div className="w-24 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                <div 
+                                  className={clsx(
+                                    "h-full rounded-full transition-all duration-500",
+                                    groupVisibility >= 80 ? "bg-green-500" : 
+                                    groupVisibility >= 50 ? "bg-yellow-500" : "bg-red-500"
+                                  )} 
+                                  style={{ width: `${groupVisibility}%` }}
+                                ></div>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
                        </tr>
                        
                        {/* Query Rows */}
@@ -1835,6 +1726,77 @@ export default function Performance() {
                 )}
               </>
             )}
+          </div>
+        </div>
+      )}
+      
+      {visConfigOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setVisConfigOpen(false)}></div>
+          <div className="relative bg-white border border-gray-200 rounded-2xl shadow-xl max-w-md w-full p-6">
+            <div className="flex items-start justify-between mb-3">
+              <h4 className="font-bold text-gray-900">Visibility Settings</h4>
+              <button className="p-2 rounded-md hover:bg-gray-100 text-gray-500" onClick={() => setVisConfigOpen(false)}>
+                <X size={16} />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <div className="text-xs font-bold text-gray-500 uppercase mb-2">Update Frequency</div>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { value: '1', label: 'Daily' },
+                    { value: '3', label: 'Every 3 Days' },
+                    { value: '7', label: 'Weekly' },
+                  ].map((opt) => (
+                    <label key={opt.value} className="cursor-pointer">
+                      <input
+                        type="radio"
+                        name="visFrequencyModal"
+                        className="sr-only peer"
+                        value={opt.value}
+                        checked={visFrequencyDraft === opt.value}
+                        onChange={() => setVisFrequencyDraft(opt.value as '1' | '3' | '7')}
+                      />
+                      <div className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 peer-checked:border-primary peer-checked:bg-primary/5">
+                        {opt.label}
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div className="text-xs font-bold text-gray-500 uppercase mb-2">Monitor Platforms</div>
+                <div className="grid grid-cols-2 gap-2">
+                  {platforms.map((p) => (
+                    <label key={p.id} className="flex items-center justify-between p-2 border border-gray-100 rounded-lg hover:bg-gray-50 cursor-pointer">
+                      <span className="text-sm text-gray-700">{p.label}</span>
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 text-primary rounded border-gray-300"
+                        checked={!!visPlatformsDraft[p.id]}
+                        onChange={(e) =>
+                          setVisPlatformsDraft((prev) => ({ ...prev, [p.id]: e.target.checked }))
+                        }
+                      />
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <button
+                  onClick={() => {
+                    setVisFrequency(visFrequencyDraft);
+                    setVisPlatforms(visPlatformsDraft);
+                    setIsVisibilityConfigured(true);
+                    setVisConfigOpen(false);
+                  }}
+                  className="px-4 py-2 bg-primary text-white rounded-lg font-bold hover:bg-primary/90"
+                >
+                  Save
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
