@@ -1,0 +1,2970 @@
+<!-- 请在这里粘贴您的 HTML 风格代码 -->
+<!-- Paste your style reference HTML code here -->
+
+      
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WorkfxAI Design System</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================
+   CSS RESET & VARIABLES
+   ============================================ */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  /* Core Monochrome */
+  --black: #0a0a0a;
+  --white: #ffffff;
+  --gray-950: #0a0a0a;
+  --gray-900: #171717;
+  --gray-800: #262626;
+  --gray-700: #404040;
+  --gray-600: #525252;
+  --gray-500: #737373;
+  --gray-400: #a3a3a3;
+  --gray-300: #d4d4d4;
+  --gray-200: #e5e5e5;
+  --gray-100: #f5f5f5;
+  --gray-50: #fafafa;
+
+  /* Strategic Accent - ONLY for primary CTAs */
+  --accent: #0a0a0a;
+  --accent-hover: #262626;
+
+  /* Semantic */
+  --success: #16a34a;
+  --success-light: #f0fdf4;
+  --error: #dc2626;
+  --error-light: #fef2f2;
+  --warning: #ca8a04;
+  --warning-light: #fefce8;
+  --info: #2563eb;
+  --info-light: #eff6ff;
+
+  /* Typography */
+  --font-display: 'Manrope', -apple-system, sans-serif;
+  --font-body: 'Inter', -apple-system, sans-serif;
+
+  /* Spacing (8px base) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+
+  /* Border Radius */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.05);
+
+  /* Transitions */
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --duration-fast: 150ms;
+  --duration-base: 250ms;
+  --duration-slow: 400ms;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--black);
+  background: var(--white);
+}
+
+img { max-width: 100%; display: block; }
+a { color: inherit; text-decoration: none; }
+button { cursor: pointer; font-family: inherit; }
+input, textarea, select { font-family: inherit; }
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--space-6);
+}
+
+.section {
+  padding: var(--space-20) 0;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.section-number {
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gray-400);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: var(--space-3);
+}
+
+.section-title {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--black);
+  margin-bottom: var(--space-8);
+}
+
+.section-note {
+  font-size: 14px;
+  color: var(--gray-500);
+  line-height: 1.6;
+  margin-top: var(--space-8);
+  max-width: 680px;
+  padding: var(--space-4) var(--space-6);
+  background: var(--gray-50);
+  border-radius: var(--radius-md);
+}
+
+.grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-6); }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-6); }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-6); }
+
+@media (max-width: 768px) {
+  .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+  .section { padding: var(--space-16) 0; }
+  .container { padding: 0 var(--space-4); }
+}
+
+/* ============================================
+   SECTION 0: STICKY NAVIGATION
+   ============================================ */
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-6);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.nav-logo {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 20px;
+  color: var(--black);
+  letter-spacing: -0.02em;
+  flex-shrink: 0;
+}
+
+.nav-links {
+  display: flex;
+  gap: var(--space-6);
+  list-style: none;
+}
+
+.nav-links a {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--gray-500);
+  transition: color var(--duration-fast) var(--ease);
+}
+
+.nav-links a:hover { color: var(--black); }
+
+.nav-cta {
+  background: var(--black);
+  color: var(--white);
+  border: none;
+  padding: 8px 20px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 600;
+  transition: background var(--duration-fast) var(--ease);
+  flex-shrink: 0;
+}
+
+.nav-cta:hover { background: var(--gray-800); }
+
+@media (max-width: 768px) {
+  .nav-links { display: none; }
+  .nav { padding: 0 var(--space-4); }
+}
+
+/* ============================================
+   SECTION 1: HERO
+   ============================================ */
+.hero {
+  padding: var(--space-24) 0;
+  text-align: center;
+}
+
+.hero-title {
+  font-family: var(--font-display);
+  font-size: 72px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  color: var(--black);
+  margin-bottom: var(--space-6);
+}
+
+.hero-subtitle {
+  font-family: var(--font-body);
+  font-size: 20px;
+  color: var(--gray-500);
+  max-width: 600px;
+  margin: 0 auto var(--space-8);
+  line-height: 1.6;
+}
+
+.hero-meta {
+  font-size: 13px;
+  color: var(--gray-400);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+@media (max-width: 768px) {
+  .hero { padding: var(--space-16) 0; }
+  .hero-title { font-size: 48px; }
+  .hero-subtitle { font-size: 18px; }
+}
+
+/* ============================================
+   SECTION 2: COLORS
+   ============================================ */
+.color-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: var(--space-4);
+}
+
+.color-swatch {
+  text-align: center;
+}
+
+.color-swatch-block {
+  height: 80px;
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-2);
+  border: 1px solid var(--gray-200);
+}
+
+.color-swatch-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gray-700);
+}
+
+.color-swatch-hex {
+  font-size: 12px;
+  color: var(--gray-400);
+  font-family: var(--font-body);
+}
+
+.semantic-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-4);
+  margin-top: var(--space-8);
+}
+
+.semantic-pair {
+  text-align: center;
+}
+
+.semantic-pair .color-swatch-block {
+  height: 48px;
+}
+
+.semantic-pair .color-swatch-block + .color-swatch-block {
+  height: 32px;
+  margin-top: var(--space-1);
+}
+
+@media (max-width: 768px) {
+  .color-grid { grid-template-columns: repeat(3, 1fr); }
+  .semantic-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ============================================
+   SECTION 3: TYPOGRAPHY
+   ============================================ */
+.type-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-8);
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.type-label {
+  flex-shrink: 0;
+  width: 120px;
+  font-size: 13px;
+  color: var(--gray-400);
+  font-weight: 500;
+}
+
+.type-sample { flex: 1; min-width: 0; }
+
+.type-display {
+  font-family: var(--font-display);
+  font-size: 72px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.type-h1 {
+  font-family: var(--font-display);
+  font-size: 48px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.type-h2 {
+  font-family: var(--font-display);
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.type-h3 {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+
+.type-h4 {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.type-h5 {
+  font-family: var(--font-body);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.type-body-lg {
+  font-family: var(--font-body);
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--gray-700);
+}
+
+.type-body {
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--gray-700);
+}
+
+.type-small {
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--gray-500);
+}
+
+.type-caption {
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--gray-400);
+}
+
+@media (max-width: 768px) {
+  .type-row { flex-direction: column; gap: var(--space-2); }
+  .type-label { width: auto; }
+  .type-display { font-size: 42px; }
+  .type-h1 { font-size: 32px; }
+  .type-h2 { font-size: 28px; }
+}
+
+/* ============================================
+   SECTION 4: SPACING & SHAPE
+   ============================================ */
+.spacing-row {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-12);
+}
+
+.spacing-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.spacing-block {
+  background: var(--gray-200);
+  height: 32px;
+  border-radius: 2px;
+}
+
+.spacing-label {
+  font-size: 12px;
+  color: var(--gray-400);
+  font-weight: 500;
+}
+
+.radius-row {
+  display: flex;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+}
+
+.radius-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.radius-block {
+  width: 64px;
+  height: 64px;
+  border: 2px solid var(--gray-300);
+  background: var(--gray-50);
+}
+
+.radius-label {
+  font-size: 12px;
+  color: var(--gray-400);
+  font-weight: 500;
+}
+
+/* ============================================
+   SECTION 5: BUTTONS
+   ============================================ */
+.btn-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+  flex-wrap: wrap;
+}
+
+.btn-row-label {
+  font-size: 13px;
+  color: var(--gray-400);
+  font-weight: 500;
+  width: 100px;
+  flex-shrink: 0;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  font-weight: 600;
+  border: none;
+  transition: all var(--duration-base) var(--ease);
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background: var(--black);
+  color: var(--white);
+  padding: 12px 24px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+}
+
+.btn-primary:hover {
+  background: var(--gray-800);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-secondary {
+  background: var(--white);
+  color: var(--black);
+  padding: 12px 24px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  border: 1.5px solid var(--black);
+}
+
+.btn-secondary:hover {
+  background: var(--black);
+  color: var(--white);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--gray-500);
+  padding: 12px 24px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  border: none;
+}
+
+.btn-ghost:hover {
+  background: var(--gray-100);
+  color: var(--black);
+}
+
+.btn-destructive {
+  background: var(--error);
+  color: var(--white);
+  padding: 12px 24px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+}
+
+.btn-destructive:hover {
+  background: #b91c1c;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn:disabled, .btn.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.btn-sm {
+  padding: 8px 16px;
+  font-size: 12px;
+}
+
+.btn-md {
+  padding: 12px 24px;
+  font-size: 14px;
+}
+
+.btn-lg {
+  padding: 16px 32px;
+  font-size: 16px;
+}
+
+/* ============================================
+   SECTION 6: CARDS
+   ============================================ */
+.feature-card {
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  padding: var(--space-8);
+  transition: all var(--duration-base) var(--ease);
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--gray-400);
+}
+
+.feature-card-icon {
+  width: 48px;
+  height: 48px;
+  background: var(--black);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--space-6);
+}
+
+.feature-card-icon svg { width: 24px; height: 24px; }
+
+.feature-card-title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: var(--space-3);
+}
+
+.feature-card-desc {
+  font-size: 15px;
+  color: var(--gray-600);
+  line-height: 1.5;
+}
+
+/* Testimonial Card */
+.testimonial-card {
+  background: var(--gray-50);
+  border-radius: var(--radius-xl);
+  padding: var(--space-8);
+  max-width: 640px;
+}
+
+.testimonial-quote-mark {
+  font-size: 48px;
+  color: var(--gray-300);
+  line-height: 1;
+  font-family: Georgia, serif;
+  margin-bottom: var(--space-4);
+}
+
+.testimonial-text {
+  font-size: 18px;
+  font-style: italic;
+  line-height: 1.6;
+  color: var(--gray-700);
+  margin-bottom: var(--space-6);
+}
+
+.testimonial-footer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.testimonial-avatar {
+  width: 40px;
+  height: 40px;
+  background: var(--black);
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--white);
+  font-size: 14px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.testimonial-name {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.testimonial-role {
+  font-size: 13px;
+  color: var(--gray-500);
+}
+
+/* Pricing Cards */
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-6);
+  align-items: center;
+}
+
+.pricing-card {
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-xl);
+  padding: var(--space-8);
+  text-align: center;
+  transition: all var(--duration-base) var(--ease);
+}
+
+.pricing-card:hover {
+  box-shadow: var(--shadow-lg);
+}
+
+.pricing-card.featured {
+  background: var(--black);
+  color: var(--white);
+  transform: scale(1.05);
+  border-color: var(--black);
+}
+
+.pricing-card.featured:hover {
+  box-shadow: var(--shadow-xl);
+}
+
+.pricing-plan {
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--space-4);
+}
+
+.pricing-card.featured .pricing-plan {
+  color: var(--gray-400);
+}
+
+.pricing-price {
+  font-family: var(--font-display);
+  font-size: 48px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin-bottom: var(--space-1);
+}
+
+.pricing-period {
+  font-size: 14px;
+  color: var(--gray-500);
+  margin-bottom: var(--space-6);
+}
+
+.pricing-card.featured .pricing-period {
+  color: var(--gray-400);
+}
+
+.pricing-features {
+  list-style: none;
+  text-align: left;
+  margin-bottom: var(--space-8);
+}
+
+.pricing-features li {
+  font-size: 14px;
+  padding: var(--space-2) 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.pricing-features li::before {
+  content: '';
+  width: 16px;
+  height: 16px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%2316a34a'%3E%3Cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3E%3C/svg%3E");
+  flex-shrink: 0;
+}
+
+.pricing-card.featured .pricing-features li::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%2316a34a'%3E%3Cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3E%3C/svg%3E");
+}
+
+.pricing-card.featured .pricing-features li {
+  color: var(--gray-300);
+}
+
+.pricing-btn {
+  width: 100%;
+  padding: 12px 24px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  transition: all var(--duration-base) var(--ease);
+}
+
+.pricing-btn-dark {
+  background: var(--black);
+  color: var(--white);
+}
+
+.pricing-btn-dark:hover {
+  background: var(--gray-800);
+}
+
+.pricing-btn-light {
+  background: var(--white);
+  color: var(--black);
+}
+
+.pricing-btn-light:hover {
+  background: var(--gray-100);
+}
+
+.pricing-btn-outline {
+  background: transparent;
+  color: var(--black);
+  border: 1.5px solid var(--gray-300);
+}
+
+.pricing-btn-outline:hover {
+  border-color: var(--black);
+  background: var(--black);
+  color: var(--white);
+}
+
+@media (max-width: 768px) {
+  .pricing-grid { grid-template-columns: 1fr; }
+  .pricing-card.featured { transform: scale(1); }
+}
+
+/* ============================================
+   SECTION 7: FORMS
+   ============================================ */
+.form-group {
+  margin-bottom: var(--space-6);
+  max-width: 480px;
+}
+
+.form-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: var(--space-2);
+  color: var(--black);
+}
+
+.form-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid var(--gray-300);
+  border-radius: var(--radius-md);
+  font-size: 15px;
+  color: var(--black);
+  background: var(--white);
+  transition: all var(--duration-fast) var(--ease);
+  outline: none;
+}
+
+.form-input::placeholder { color: var(--gray-400); }
+
+.form-input:focus {
+  border-color: var(--black);
+  box-shadow: 0 0 0 3px rgba(10, 10, 10, 0.08);
+}
+
+.form-input.error {
+  border-color: var(--error);
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.08);
+}
+
+.form-input.success {
+  border-color: var(--success);
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.08);
+}
+
+.form-input:disabled {
+  background: var(--gray-100);
+  color: var(--gray-400);
+  cursor: not-allowed;
+  border-color: var(--gray-200);
+}
+
+.form-helper {
+  font-size: 13px;
+  color: var(--gray-500);
+  margin-top: var(--space-1);
+}
+
+.form-error {
+  font-size: 13px;
+  color: var(--error);
+  margin-top: var(--space-1);
+}
+
+.form-success-text {
+  font-size: 13px;
+  color: var(--success);
+  margin-top: var(--space-1);
+}
+
+textarea.form-input {
+  resize: vertical;
+  min-height: 100px;
+}
+
+select.form-input {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='%23737373'%3E%3Cpath d='M4.427 6.427a.75.75 0 011.06-.073L8 8.574l2.513-2.22a.75.75 0 11.994 1.126l-3 2.647a.75.75 0 01-.994 0l-3-2.647a.75.75 0 01-.086-1.073z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 40px;
+}
+
+/* Custom Checkbox */
+.checkbox-group, .radio-group { display: flex; flex-direction: column; gap: var(--space-3); }
+
+.checkbox-label, .radio-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  cursor: pointer;
+  font-size: 15px;
+}
+
+.checkbox-label input, .radio-label input { display: none; }
+
+.checkbox-custom {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--gray-300);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--duration-fast) var(--ease);
+  flex-shrink: 0;
+}
+
+.checkbox-label input:checked + .checkbox-custom {
+  background: var(--black);
+  border-color: var(--black);
+}
+
+.checkbox-label input:checked + .checkbox-custom::after {
+  content: '';
+  width: 10px;
+  height: 10px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='white'%3E%3Cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3E%3C/svg%3E");
+}
+
+.radio-custom {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--gray-300);
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--duration-fast) var(--ease);
+  flex-shrink: 0;
+}
+
+.radio-label input:checked + .radio-custom {
+  border-color: var(--black);
+}
+
+.radio-label input:checked + .radio-custom::after {
+  content: '';
+  width: 10px;
+  height: 10px;
+  background: var(--black);
+  border-radius: var(--radius-full);
+}
+
+/* Toggle Switch */
+.toggle-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.toggle {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  cursor: pointer;
+}
+
+.toggle input { display: none; }
+
+.toggle-track {
+  position: absolute;
+  inset: 0;
+  background: var(--gray-300);
+  border-radius: var(--radius-full);
+  transition: background var(--duration-fast) var(--ease);
+}
+
+.toggle input:checked + .toggle-track {
+  background: var(--black);
+}
+
+.toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background: var(--white);
+  border-radius: var(--radius-full);
+  transition: transform var(--duration-fast) var(--ease);
+  box-shadow: var(--shadow-sm);
+}
+
+.toggle input:checked ~ .toggle-thumb {
+  transform: translateX(20px);
+}
+
+.toggle-label-text {
+  font-size: 15px;
+}
+
+/* ============================================
+   SECTION 8: PROGRESS & LOADING
+   ============================================ */
+/* Stepper */
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  max-width: 560px;
+  margin-bottom: var(--space-12);
+}
+
+.stepper-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  position: relative;
+  flex: 1;
+}
+
+.stepper-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  z-index: 1;
+  transition: all var(--duration-base) var(--ease);
+}
+
+.stepper-circle.done {
+  background: var(--black);
+  color: var(--white);
+}
+
+.stepper-circle.active {
+  background: var(--black);
+  color: var(--white);
+  box-shadow: 0 0 0 4px rgba(10, 10, 10, 0.1);
+}
+
+.stepper-circle.upcoming {
+  background: var(--white);
+  color: var(--gray-400);
+  border: 2px solid var(--gray-300);
+}
+
+.stepper-label {
+  font-size: 12px;
+  color: var(--gray-500);
+  white-space: nowrap;
+}
+
+.stepper-line {
+  flex: 1;
+  height: 2px;
+  background: var(--gray-200);
+  margin: 0 -8px;
+  align-self: flex-start;
+  margin-top: 15px;
+}
+
+.stepper-line.done { background: var(--black); }
+
+/* Progress Bar */
+.progress-bar-wrap {
+  margin-bottom: var(--space-12);
+  max-width: 560px;
+}
+
+.progress-bar-track {
+  width: 100%;
+  height: 4px;
+  background: var(--gray-200);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: var(--black);
+  border-radius: var(--radius-full);
+  transition: width 1s var(--ease);
+  animation: progressPulse 2s ease-in-out infinite;
+}
+
+@keyframes progressPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}
+
+.progress-bar-label {
+  font-size: 13px;
+  color: var(--gray-500);
+  margin-top: var(--space-2);
+}
+
+/* Skeleton */
+.skeleton-wrap {
+  margin-bottom: var(--space-12);
+  max-width: 560px;
+}
+
+.skeleton-line {
+  height: 16px;
+  background: var(--gray-200);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-3);
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-line::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* Spinner */
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--gray-200);
+  border-top-color: var(--black);
+  border-radius: var(--radius-full);
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ============================================
+   SECTION 9: BADGES, ALERTS, TABS
+   ============================================ */
+/* Badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.badge-black { background: var(--black); color: var(--white); }
+.badge-outline { background: transparent; color: var(--black); border: 1.5px solid var(--black); }
+.badge-gray { background: var(--gray-100); color: var(--gray-700); }
+.badge-success { background: var(--success-light); color: var(--success); }
+.badge-error { background: var(--error-light); color: var(--error); }
+.badge-warning { background: var(--warning-light); color: var(--warning); }
+.badge-info { background: var(--info-light); color: var(--info); }
+
+.badges-row {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-8);
+}
+
+/* Alerts */
+.alert {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-6);
+  border-radius: var(--radius-md);
+  border-left: 4px solid;
+  margin-bottom: var(--space-4);
+  max-width: 560px;
+}
+
+.alert-icon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+}
+
+.alert-content { flex: 1; }
+
+.alert-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.alert-text {
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.alert-info {
+  background: var(--info-light);
+  border-left-color: var(--info);
+  color: #1e40af;
+}
+
+.alert-success {
+  background: var(--success-light);
+  border-left-color: var(--success);
+  color: #166534;
+}
+
+.alert-warning {
+  background: var(--warning-light);
+  border-left-color: var(--warning);
+  color: #854d0e;
+}
+
+.alert-error {
+  background: var(--error-light);
+  border-left-color: var(--error);
+  color: #991b1b;
+}
+
+/* Tabs */
+.tabs {
+  border-bottom: 1px solid var(--gray-200);
+  display: flex;
+  gap: var(--space-8);
+}
+
+.tab-btn {
+  background: none;
+  border: none;
+  padding: var(--space-3) 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--gray-500);
+  position: relative;
+  transition: color var(--duration-fast) var(--ease);
+}
+
+.tab-btn:hover { color: var(--black); }
+
+.tab-btn.active {
+  color: var(--black);
+}
+
+.tab-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--black);
+}
+
+.tab-content { display: none; padding: var(--space-6) 0; }
+.tab-content.active { display: block; }
+
+/* ============================================
+   SECTION 10: AI PATTERNS
+   ============================================ */
+/* Chat Interface */
+.chat-container {
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  max-width: 640px;
+  margin-bottom: var(--space-12);
+}
+
+.chat-header {
+  padding: var(--space-4) var(--space-6);
+  border-bottom: 1px solid var(--gray-200);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.chat-messages {
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  min-height: 280px;
+  background: var(--white);
+}
+
+.chat-msg {
+  display: flex;
+  gap: var(--space-3);
+  max-width: 85%;
+}
+
+.chat-msg.user {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+}
+
+.chat-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.chat-avatar.ai {
+  background: var(--gray-200);
+  color: var(--gray-600);
+}
+
+.chat-avatar.human {
+  background: var(--black);
+  color: var(--white);
+}
+
+.chat-bubble {
+  padding: var(--space-3) var(--space-4);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.chat-msg.ai .chat-bubble {
+  background: var(--gray-100);
+  color: var(--black);
+  border-radius: 4px var(--radius-lg) var(--radius-lg) var(--radius-lg);
+}
+
+.chat-msg.user .chat-bubble {
+  background: var(--black);
+  color: var(--white);
+  border-radius: var(--radius-lg) 4px var(--radius-lg) var(--radius-lg);
+}
+
+.chat-typing {
+  display: flex;
+  gap: 4px;
+  padding: var(--space-3) var(--space-4);
+  background: var(--gray-100);
+  border-radius: 4px var(--radius-lg) var(--radius-lg) var(--radius-lg);
+  width: fit-content;
+}
+
+.chat-typing-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--gray-400);
+  border-radius: var(--radius-full);
+  animation: typingPulse 1.4s ease-in-out infinite;
+}
+
+.chat-typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.chat-typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typingPulse {
+  0%, 60%, 100% { opacity: 0.3; transform: scale(0.8); }
+  30% { opacity: 1; transform: scale(1); }
+}
+
+.chat-input-bar {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-6);
+  border-top: 1px solid var(--gray-200);
+  background: var(--gray-50);
+}
+
+.chat-input {
+  flex: 1;
+  padding: 10px 16px;
+  border: 1.5px solid var(--gray-300);
+  border-radius: var(--radius-full);
+  font-size: 14px;
+  outline: none;
+  background: var(--white);
+  transition: border-color var(--duration-fast) var(--ease);
+}
+
+.chat-input:focus { border-color: var(--black); }
+
+.chat-send-btn {
+  width: 40px;
+  height: 40px;
+  background: var(--black);
+  border: none;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background var(--duration-fast) var(--ease);
+}
+
+.chat-send-btn:hover { background: var(--gray-800); }
+
+.chat-send-btn svg { width: 18px; height: 18px; }
+
+/* AI Generation Loading */
+.ai-gen-card {
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  max-width: 640px;
+  margin-bottom: var(--space-12);
+}
+
+.ai-gen-progress {
+  height: 3px;
+  background: var(--gray-200);
+  overflow: hidden;
+}
+
+.ai-gen-progress-fill {
+  height: 100%;
+  background: var(--black);
+  width: 0%;
+  transition: width 0.3s var(--ease);
+}
+
+.ai-gen-body {
+  padding: var(--space-8);
+}
+
+.ai-gen-status {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: var(--space-6);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.ai-gen-skeleton-lines {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.ai-gen-skeleton {
+  height: 14px;
+  background: var(--gray-100);
+  border-radius: var(--radius-sm);
+  position: relative;
+  overflow: hidden;
+}
+
+.ai-gen-skeleton.generated {
+  background: var(--gray-200);
+}
+
+.ai-gen-skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+  animation: shimmer 1.5s infinite;
+}
+
+.ai-gen-skeleton.generated::after { display: none; }
+
+/* Dashboard Metrics */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-4);
+  margin-bottom: var(--space-12);
+}
+
+.metric-card {
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  transition: all var(--duration-fast) var(--ease);
+}
+
+.metric-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.metric-label {
+  font-size: 13px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--gray-400);
+  margin-bottom: var(--space-2);
+}
+
+.metric-value {
+  font-family: var(--font-display);
+  font-size: 42px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin-bottom: var(--space-2);
+}
+
+.metric-trend {
+  font-size: 13px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.metric-trend.up { color: var(--success); }
+.metric-trend.down { color: var(--error); }
+
+@media (max-width: 768px) {
+  .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Onboarding Step */
+.onboarding-card {
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-xl);
+  padding: var(--space-8);
+  max-width: 560px;
+}
+
+.onboarding-dots {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-8);
+  justify-content: center;
+}
+
+.onboarding-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--gray-200);
+}
+
+.onboarding-dot.done { background: var(--gray-400); }
+
+.onboarding-dot.active {
+  width: 24px;
+  background: var(--black);
+  border-radius: var(--radius-full);
+}
+
+.onboarding-title {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: var(--space-8);
+  letter-spacing: -0.01em;
+}
+
+.onboarding-options {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4);
+  margin-bottom: var(--space-8);
+}
+
+.onboarding-option {
+  border: 2px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease);
+}
+
+.onboarding-option:hover { border-color: var(--gray-400); }
+
+.onboarding-option.selected {
+  border-color: var(--black);
+  background: var(--gray-50);
+}
+
+.onboarding-option-icon {
+  font-size: 28px;
+  margin-bottom: var(--space-3);
+}
+
+.onboarding-option-label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.onboarding-option-desc {
+  font-size: 13px;
+  color: var(--gray-500);
+  margin-top: var(--space-1);
+}
+
+.onboarding-continue {
+  width: 100%;
+  padding: 14px;
+  background: var(--black);
+  color: var(--white);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 15px;
+  font-weight: 600;
+  transition: all var(--duration-base) var(--ease);
+}
+
+.onboarding-continue:hover {
+  background: var(--gray-800);
+}
+
+/* ============================================
+   SECTION 11: LAYOUT TEMPLATES
+   ============================================ */
+/* Landing Hero Template */
+.template-landing {
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  margin-bottom: var(--space-12);
+}
+
+.template-landing-inner {
+  padding: 80px var(--space-8) var(--space-16);
+  text-align: center;
+}
+
+.template-badge-pill {
+  display: inline-flex;
+  padding: 6px 16px;
+  background: var(--black);
+  color: var(--white);
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--space-8);
+}
+
+.template-headline {
+  font-family: var(--font-display);
+  font-size: 56px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.08;
+  max-width: 800px;
+  margin: 0 auto var(--space-6);
+}
+
+.template-sub {
+  font-size: 20px;
+  color: var(--gray-500);
+  max-width: 560px;
+  margin: 0 auto var(--space-8);
+  line-height: 1.6;
+}
+
+.template-btns {
+  display: flex;
+  gap: var(--space-4);
+  justify-content: center;
+  margin-bottom: var(--space-12);
+}
+
+.template-trust {
+  font-size: 13px;
+  color: var(--gray-400);
+  margin-bottom: var(--space-4);
+}
+
+.template-logos {
+  display: flex;
+  gap: var(--space-6);
+  justify-content: center;
+  align-items: center;
+}
+
+.template-logo-placeholder {
+  width: 80px;
+  height: 28px;
+  background: var(--gray-200);
+  border-radius: var(--radius-sm);
+}
+
+@media (max-width: 768px) {
+  .template-landing-inner { padding: var(--space-12) var(--space-4) var(--space-8); }
+  .template-headline { font-size: 36px; }
+  .template-btns { flex-direction: column; align-items: center; }
+}
+
+/* Feature Grid Template */
+.template-features {
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-xl);
+  padding: var(--space-16) var(--space-8);
+  margin-bottom: var(--space-12);
+  background: var(--gray-50);
+}
+
+.template-features-header {
+  text-align: center;
+  margin-bottom: var(--space-12);
+}
+
+.template-features-title {
+  font-family: var(--font-display);
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* Footer Template */
+.template-footer {
+  background: var(--black);
+  color: var(--white);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+}
+
+.template-footer-inner {
+  padding: var(--space-16) var(--space-8) var(--space-8);
+}
+
+.template-footer-grid {
+  display: grid;
+  grid-template-columns: 2fr repeat(4, 1fr);
+  gap: var(--space-8);
+  margin-bottom: var(--space-12);
+}
+
+.template-footer-brand {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 800;
+  margin-bottom: var(--space-4);
+}
+
+.template-footer-tagline {
+  font-size: 14px;
+  color: var(--gray-500);
+  line-height: 1.6;
+}
+
+.template-footer-col-title {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--gray-400);
+  margin-bottom: var(--space-4);
+}
+
+.template-footer-links {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.template-footer-links a {
+  font-size: 14px;
+  color: var(--gray-400);
+  transition: color var(--duration-fast) var(--ease);
+}
+
+.template-footer-links a:hover { color: var(--white); }
+
+.template-footer-bottom {
+  border-top: 1px solid var(--gray-800);
+  padding-top: var(--space-6);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.template-footer-copyright {
+  font-size: 13px;
+  color: var(--gray-500);
+}
+
+.template-footer-social {
+  display: flex;
+  gap: var(--space-4);
+}
+
+.template-footer-social a {
+  color: var(--gray-500);
+  transition: color var(--duration-fast) var(--ease);
+}
+
+.template-footer-social a:hover { color: var(--white); }
+
+@media (max-width: 768px) {
+  .template-footer-grid { grid-template-columns: 1fr 1fr; }
+  .template-footer-bottom { flex-direction: column; gap: var(--space-4); text-align: center; }
+}
+
+/* ============================================
+   COMPONENT DEMO SUBSECTION LABEL
+   ============================================ */
+.component-label {
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--gray-700);
+  margin-bottom: var(--space-6);
+  margin-top: var(--space-12);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.component-label:first-of-type { margin-top: 0; }
+
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-6);
+}
+
+@media (max-width: 768px) {
+  .form-grid-2 { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============================================
+     SECTION 0: STICKY NAVIGATION
+     ============================================ -->
+<nav class="nav" role="navigation" aria-label="Main navigation">
+  <div class="nav-logo">WorkfxAI</div>
+  <ul class="nav-links">
+    <li><a href="#colors">Colors</a></li>
+    <li><a href="#typography">Typography</a></li>
+    <li><a href="#components">Components</a></li>
+    <li><a href="#patterns">Patterns</a></li>
+    <li><a href="#layouts">Layouts</a></li>
+  </ul>
+  <button class="nav-cta">Get Started</button>
+</nav>
+
+<main>
+
+<!-- ============================================
+     SECTION 1: HERO
+     ============================================ -->
+<section class="hero section" id="hero">
+  <div class="container">
+    <h1 class="hero-title">WorkfxAI<br>Design System</h1>
+    <p class="hero-subtitle">A minimalist design language for AI-powered SaaS, inspired by Nordstrom UX principles.</p>
+    <p class="hero-meta">Manrope + Inter &middot; Monochrome &middot; Accessible &middot; Mobile-First</p>
+  </div>
+</section>
+
+<!-- ============================================
+     SECTION 2: COLORS
+     ============================================ -->
+<section class="section" id="colors">
+  <div class="container">
+    <div class="section-number">01</div>
+    <h2 class="section-title">Colors</h2>
+
+    <div class="color-grid">
+      <div class="color-swatch">
+        <div class="color-swatch-block" style="background:#0a0a0a;border-color:#0a0a0a;"></div>
+        <div class="color-swatch-label">Black</div>
+        <div class="color-swatch-hex">#0a0a0a</div>
+      </div>
+      <div class="color-swatch">
+        <div class="color-swatch-block" style="background:#171717;border-color:#171717;"></div>
+        <div class="color-swatch-label">Gray 900</div>
+        <div class="color-swatch-hex">#171717</div>
+      </div>
+      <div class="color-swatch">
+        <div class="color-swatch-block" style="background:#404040;border-color:#404040;"></div>
+        <div class="color-swatch-label">Gray 700</div>
+        <div class="color-swatch-hex">#404040</div>
+      </div>
+      <div class="color-swatch">
+        <div class="color-swatch-block" style="background:#737373;border-color:#737373;"></div>
+        <div class="color-swatch-label">Gray 500</div>
+        <div class="color-swatch-hex">#737373</div>
+      </div>
+      <div class="color-swatch">
+        <div class="color-swatch-block" style="background:#d4d4d4;"></div>
+        <div class="color-swatch-label">Gray 300</div>
+        <div class="color-swatch-hex">#d4d4d4</div>
+      </div>
+      <div class="color-swatch">
+        <div class="color-swatch-block" style="background:#e5e5e5;"></div>
+        <div class="color-swatch-label">Gray 200</div>
+        <div class="color-swatch-hex">#e5e5e5</div>
+      </div>
+      <div class="color-swatch">
+        <div class="color-swatch-block" style="background:#f5f5f5;"></div>
+        <div class="color-swatch-label">Gray 100</div>
+        <div class="color-swatch-hex">#f5f5f5</div>
+      </div>
+      <div class="color-swatch">
+        <div class="color-swatch-block" style="background:#fafafa;"></div>
+        <div class="color-swatch-label">Gray 50</div>
+        <div class="color-swatch-hex">#fafafa</div>
+      </div>
+      <div class="color-swatch">
+        <div class="color-swatch-block" style="background:#ffffff;"></div>
+        <div class="color-swatch-label">White</div>
+        <div class="color-swatch-hex">#ffffff</div>
+      </div>
+    </div>
+
+    <div class="component-label" style="margin-top:var(--space-12);">Semantic Colors</div>
+    <div class="semantic-grid">
+      <div class="semantic-pair">
+        <div class="color-swatch-block" style="background:#16a34a;border-color:#16a34a;height:48px;border-radius:var(--radius-md);"></div>
+        <div class="color-swatch-block" style="background:#f0fdf4;height:32px;margin-top:4px;border-radius:var(--radius-md);"></div>
+        <div class="color-swatch-label" style="margin-top:8px;">Success</div>
+        <div class="color-swatch-hex">#16a34a / #f0fdf4</div>
+      </div>
+      <div class="semantic-pair">
+        <div class="color-swatch-block" style="background:#dc2626;border-color:#dc2626;height:48px;border-radius:var(--radius-md);"></div>
+        <div class="color-swatch-block" style="background:#fef2f2;height:32px;margin-top:4px;border-radius:var(--radius-md);"></div>
+        <div class="color-swatch-label" style="margin-top:8px;">Error</div>
+        <div class="color-swatch-hex">#dc2626 / #fef2f2</div>
+      </div>
+      <div class="semantic-pair">
+        <div class="color-swatch-block" style="background:#ca8a04;border-color:#ca8a04;height:48px;border-radius:var(--radius-md);"></div>
+        <div class="color-swatch-block" style="background:#fefce8;height:32px;margin-top:4px;border-radius:var(--radius-md);"></div>
+        <div class="color-swatch-label" style="margin-top:8px;">Warning</div>
+        <div class="color-swatch-hex">#ca8a04 / #fefce8</div>
+      </div>
+      <div class="semantic-pair">
+        <div class="color-swatch-block" style="background:#2563eb;border-color:#2563eb;height:48px;border-radius:var(--radius-md);"></div>
+        <div class="color-swatch-block" style="background:#eff6ff;height:32px;margin-top:4px;border-radius:var(--radius-md);"></div>
+        <div class="color-swatch-label" style="margin-top:8px;">Info</div>
+        <div class="color-swatch-hex">#2563eb / #eff6ff</div>
+      </div>
+    </div>
+
+    <p class="section-note">Use color strategically. The primary palette is monochrome. Semantic colors are reserved for system feedback only.</p>
+  </div>
+</section>
+
+<!-- ============================================
+     SECTION 3: TYPOGRAPHY
+     ============================================ -->
+<section class="section" id="typography">
+  <div class="container">
+    <div class="section-number">02</div>
+    <h2 class="section-title">Typography</h2>
+
+    <div class="type-row">
+      <div class="type-label">Display / 72px</div>
+      <div class="type-sample type-display">The future of AI search</div>
+    </div>
+    <div class="type-row">
+      <div class="type-label">H1 / 48px</div>
+      <div class="type-sample type-h1">AI-Powered SEO Strategy</div>
+    </div>
+    <div class="type-row">
+      <div class="type-label">H2 / 36px</div>
+      <div class="type-sample type-h2">Content Calendar</div>
+    </div>
+    <div class="type-row">
+      <div class="type-label">H3 / 28px</div>
+      <div class="type-sample type-h3">Competitor Analysis</div>
+    </div>
+    <div class="type-row">
+      <div class="type-label">H4 / 22px</div>
+      <div class="type-sample type-h4">Monthly Performance</div>
+    </div>
+    <div class="type-row">
+      <div class="type-label">H5 / 18px</div>
+      <div class="type-sample type-h5">Filter Options</div>
+    </div>
+    <div class="type-row">
+      <div class="type-label">Body Large / 18px</div>
+      <div class="type-sample type-body-lg">WorkfxAI helps brands optimize their content for AI search engines like ChatGPT and Perplexity.</div>
+    </div>
+    <div class="type-row">
+      <div class="type-label">Body / 16px</div>
+      <div class="type-sample type-body">Generate SEO-optimized content that ranks in both traditional and AI search results.</div>
+    </div>
+    <div class="type-row">
+      <div class="type-label">Small / 14px</div>
+      <div class="type-sample type-small">Last updated 2 hours ago</div>
+    </div>
+    <div class="type-row">
+      <div class="type-label">Caption / 13px</div>
+      <div class="type-sample type-caption">MONTHLY VISITORS</div>
+    </div>
+
+    <p class="section-note">Minimum font size: 13px. Line height: 140% minimum. Max paragraph width: 75 characters.</p>
+  </div>
+</section>
+
+<!-- ============================================
+     SECTION 4: SPACING & SHAPE
+     ============================================ -->
+<section class="section" id="spacing">
+  <div class="container">
+    <div class="section-number">03</div>
+    <h2 class="section-title">Spacing &amp; Shape</h2>
+
+    <div class="component-label">Spacing Scale (8px base)</div>
+    <div class="spacing-row">
+      <div class="spacing-item">
+        <div class="spacing-block" style="width:4px;"></div>
+        <div class="spacing-label">4px</div>
+      </div>
+      <div class="spacing-item">
+        <div class="spacing-block" style="width:8px;"></div>
+        <div class="spacing-label">8px</div>
+      </div>
+      <div class="spacing-item">
+        <div class="spacing-block" style="width:12px;"></div>
+        <div class="spacing-label">12px</div>
+      </div>
+      <div class="spacing-item">
+        <div class="spacing-block" style="width:16px;"></div>
+        <div class="spacing-label">16px</div>
+      </div>
+      <div class="spacing-item">
+        <div class="spacing-block" style="width:24px;"></div>
+        <div class="spacing-label">24px</div>
+      </div>
+      <div class="spacing-item">
+        <div class="spacing-block" style="width:32px;"></div>
+        <div class="spacing-label">32px</div>
+      </div>
+      <div class="spacing-item">
+        <div class="spacing-block" style="width:48px;"></div>
+        <div class="spacing-label">48px</div>
+      </div>
+      <div class="spacing-item">
+        <div class="spacing-block" style="width:64px;"></div>
+        <div class="spacing-label">64px</div>
+      </div>
+    </div>
+
+    <div class="component-label">Border Radius</div>
+    <div class="radius-row">
+      <div class="radius-item">
+        <div class="radius-block" style="border-radius:6px;"></div>
+        <div class="radius-label">sm / 6px</div>
+      </div>
+      <div class="radius-item">
+        <div class="radius-block" style="border-radius:8px;"></div>
+        <div class="radius-label">md / 8px</div>
+      </div>
+      <div class="radius-item">
+        <div class="radius-block" style="border-radius:12px;"></div>
+        <div class="radius-label">lg / 12px</div>
+      </div>
+      <div class="radius-item">
+        <div class="radius-block" style="border-radius:16px;"></div>
+        <div class="radius-label">xl / 16px</div>
+      </div>
+      <div class="radius-item">
+        <div class="radius-block" style="border-radius:24px;"></div>
+        <div class="radius-label">2xl / 24px</div>
+      </div>
+      <div class="radius-item">
+        <div class="radius-block" style="border-radius:9999px;"></div>
+        <div class="radius-label">full / pill</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================
+     SECTION 5: BUTTONS
+     ============================================ -->
+<section class="section" id="components">
+  <div class="container">
+    <div class="section-number">04</div>
+    <h2 class="section-title">Buttons</h2>
+
+    <div class="btn-row">
+      <div class="btn-row-label">Primary</div>
+      <button class="btn btn-primary">Get Started</button>
+      <button class="btn btn-primary">Save Changes</button>
+    </div>
+
+    <div class="btn-row">
+      <div class="btn-row-label">Secondary</div>
+      <button class="btn btn-secondary">Learn More</button>
+      <button class="btn btn-secondary">View Report</button>
+    </div>
+
+    <div class="btn-row">
+      <div class="btn-row-label">Ghost</div>
+      <button class="btn btn-ghost">Cancel</button>
+      <button class="btn btn-ghost">Skip for now</button>
+    </div>
+
+    <div class="btn-row">
+      <div class="btn-row-label">Destructive</div>
+      <button class="btn btn-destructive">Delete Account</button>
+      <button class="btn btn-destructive">Remove</button>
+    </div>
+
+    <div class="btn-row">
+      <div class="btn-row-label">Disabled</div>
+      <button class="btn btn-primary disabled" disabled>Primary</button>
+      <button class="btn btn-secondary disabled" disabled>Secondary</button>
+      <button class="btn btn-ghost disabled" disabled>Ghost</button>
+      <button class="btn btn-destructive disabled" disabled>Destructive</button>
+    </div>
+
+    <div class="btn-row">
+      <div class="btn-row-label">Sizes</div>
+      <button class="btn btn-primary btn-sm">Small</button>
+      <button class="btn btn-primary btn-md">Default</button>
+      <button class="btn btn-primary btn-lg">Large</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================
+     SECTION 6: CARDS
+     ============================================ -->
+<section class="section" id="cards">
+  <div class="container">
+    <div class="section-number">05</div>
+    <h2 class="section-title">Cards</h2>
+
+    <div class="component-label">Feature Cards</div>
+    <div class="grid-3">
+      <article class="feature-card">
+        <div class="feature-card-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        </div>
+        <h3 class="feature-card-title">AI Content Generation</h3>
+        <p class="feature-card-desc">Generate SEO-optimized content tailored for AI search engines, automatically structured for maximum discoverability.</p>
+      </article>
+      <article class="feature-card">
+        <div class="feature-card-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+        <h3 class="feature-card-title">Competitor Analysis</h3>
+        <p class="feature-card-desc">Understand how your competitors rank in AI search results and uncover gaps you can fill with targeted content.</p>
+      </article>
+      <article class="feature-card">
+        <div class="feature-card-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        </div>
+        <h3 class="feature-card-title">Performance Tracking</h3>
+        <p class="feature-card-desc">Monitor your brand's visibility across ChatGPT, Perplexity, and Gemini with real-time citation tracking.</p>
+      </article>
+    </div>
+
+    <div class="component-label">Testimonial Card</div>
+    <article class="testimonial-card">
+      <div class="testimonial-quote-mark">&ldquo;</div>
+      <p class="testimonial-text">WorkfxAI transformed how we think about content strategy. Our AI search visibility increased 340% in the first quarter. The insights are genuinely actionable.</p>
+      <div class="testimonial-footer">
+        <div class="testimonial-avatar">SK</div>
+        <div>
+          <div class="testimonial-name">Sarah Kim</div>
+          <div class="testimonial-role">VP of Marketing, TechCorp</div>
+        </div>
+      </div>
+    </article>
+
+    <div class="component-label">Pricing Cards</div>
+    <div class="pricing-grid">
+      <article class="pricing-card">
+        <div class="pricing-plan">Free</div>
+        <div class="pricing-price">$0</div>
+        <div class="pricing-period">/month</div>
+        <ul class="pricing-features">
+          <li>5 AI search queries/month</li>
+          <li>Basic visibility report</li>
+          <li>1 competitor tracked</li>
+          <li>Email support</li>
+        </ul>
+        <button class="pricing-btn pricing-btn-outline">Get Started</button>
+      </article>
+      <article class="pricing-card featured">
+        <div class="pricing-plan">Pro</div>
+        <div class="pricing-price">$49</div>
+        <div class="pricing-period">/month</div>
+        <ul class="pricing-features">
+          <li>Unlimited AI queries</li>
+          <li>Full visibility dashboard</li>
+          <li>10 competitors tracked</li>
+          <li>Content generation</li>
+          <li>Priority support</li>
+        </ul>
+        <button class="pricing-btn pricing-btn-light">Start Free Trial</button>
+      </article>
+      <article class="pricing-card">
+        <div class="pricing-plan">Enterprise</div>
+        <div class="pricing-price">$199</div>
+        <div class="pricing-period">/month</div>
+        <ul class="pricing-features">
+          <li>Everything in Pro</li>
+          <li>Custom integrations</li>
+          <li>Unlimited competitors</li>
+          <li>Dedicated account manager</li>
+          <li>SLA guarantee</li>
+        </ul>
+        <button class="pricing-btn pricing-btn-outline">Contact Sales</button>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================
+     SECTION 7: FORMS
+     ============================================ -->
+<section class="section" id="forms">
+  <div class="container">
+    <div class="section-number">06</div>
+    <h2 class="section-title">Forms</h2>
+
+    <div class="form-grid-2">
+      <div>
+        <div class="component-label" style="margin-top:0;">Input States</div>
+
+        <div class="form-group">
+          <label class="form-label" for="input-default">Website URL</label>
+          <input type="text" id="input-default" class="form-input" placeholder="https://example.com">
+          <div class="form-helper">Enter the URL you want to analyze</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="input-focus">Company Name</label>
+          <input type="text" id="input-focus" class="form-input" value="WorkfxAI" style="border-color:var(--black);box-shadow:0 0 0 3px rgba(10,10,10,0.08);">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="input-error">Email Address</label>
+          <input type="email" id="input-error" class="form-input error" value="invalid-email">
+          <div class="form-error">Please enter a valid email address</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="input-success">API Key</label>
+          <input type="text" id="input-success" class="form-input success" value="sk-xxxx-verified">
+          <div class="form-success-text">API key verified successfully</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="input-disabled">Read-only Field</label>
+          <input type="text" id="input-disabled" class="form-input" value="Auto-generated value" disabled>
+        </div>
+      </div>
+
+      <div>
+        <div class="component-label" style="margin-top:0;">Other Controls</div>
+
+        <div class="form-group">
+          <label class="form-label" for="textarea-demo">Description</label>
+          <textarea id="textarea-demo" class="form-input" placeholder="Describe your business and target audience..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="select-demo">Industry</label>
+          <select id="select-demo" class="form-input">
+            <option value="">Select your industry</option>
+            <option>E-commerce</option>
+            <option>SaaS</option>
+            <option>Healthcare</option>
+            <option>Finance</option>
+            <option>Education</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Content Types</label>
+          <div class="checkbox-group">
+            <label class="checkbox-label">
+              <input type="checkbox" checked>
+              <span class="checkbox-custom"></span>
+              Blog articles
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" checked>
+              <span class="checkbox-custom"></span>
+              Product descriptions
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox">
+              <span class="checkbox-custom"></span>
+              Social media posts
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Update Frequency</label>
+          <div class="radio-group">
+            <label class="radio-label">
+              <input type="radio" name="freq" checked>
+              <span class="radio-custom"></span>
+              Daily
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="freq">
+              <span class="radio-custom"></span>
+              Weekly
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="freq">
+              <span class="radio-custom"></span>
+              Monthly
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">AI Suggestions</label>
+          <div class="toggle-wrap">
+            <label class="toggle">
+              <input type="checkbox" checked onchange="this.parentElement.querySelector('.toggle-thumb').style.transform = this.checked ? 'translateX(20px)' : 'translateX(0)'">
+              <span class="toggle-track"></span>
+              <span class="toggle-thumb" style="transform:translateX(20px);"></span>
+            </label>
+            <span class="toggle-label-text">Enable real-time suggestions</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================
+     SECTION 8: PROGRESS & LOADING
+     ============================================ -->
+<section class="section" id="progress">
+  <div class="container">
+    <div class="section-number">07</div>
+    <h2 class="section-title">Progress &amp; Loading</h2>
+
+    <div class="component-label" style="margin-top:0;">Progress Stepper</div>
+    <div class="stepper">
+      <div class="stepper-step">
+        <div class="stepper-circle done">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="white"><path d="M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z"/></svg>
+        </div>
+        <div class="stepper-label">Website</div>
+      </div>
+      <div class="stepper-line done"></div>
+      <div class="stepper-step">
+        <div class="stepper-circle active">2</div>
+        <div class="stepper-label">Industry</div>
+      </div>
+      <div class="stepper-line"></div>
+      <div class="stepper-step">
+        <div class="stepper-circle upcoming">3</div>
+        <div class="stepper-label">Goals</div>
+      </div>
+      <div class="stepper-line"></div>
+      <div class="stepper-step">
+        <div class="stepper-circle upcoming">4</div>
+        <div class="stepper-label">Complete</div>
+      </div>
+    </div>
+
+    <div class="component-label">Progress Bar</div>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-track">
+        <div class="progress-bar-fill" id="progressBar" style="width:65%;"></div>
+      </div>
+      <div class="progress-bar-label">65% complete</div>
+    </div>
+
+    <div class="component-label">Skeleton Loader</div>
+    <div class="skeleton-wrap">
+      <div class="skeleton-line" style="width:100%;"></div>
+      <div class="skeleton-line" style="width:80%;"></div>
+      <div class="skeleton-line" style="width:60%;"></div>
+      <div class="skeleton-line" style="width:90%;"></div>
+    </div>
+
+    <div class="component-label">Spinner</div>
+    <div class="spinner"></div>
+  </div>
+</section>
+
+<!-- ============================================
+     SECTION 9: BADGES, ALERTS, TABS
+     ============================================ -->
+<section class="section" id="badges">
+  <div class="container">
+    <div class="section-number">08</div>
+    <h2 class="section-title">Badges, Alerts &amp; Tabs</h2>
+
+    <div class="component-label" style="margin-top:0;">Badges</div>
+    <div class="badges-row">
+      <span class="badge badge-black">New</span>
+      <span class="badge badge-outline">Featured</span>
+      <span class="badge badge-gray">Draft</span>
+      <span class="badge badge-success">Active</span>
+      <span class="badge badge-error">Overdue</span>
+      <span class="badge badge-warning">Pending</span>
+      <span class="badge badge-info">In Review</span>
+    </div>
+
+    <div class="component-label">Alerts</div>
+    <div class="alert alert-info" role="alert">
+      <svg class="alert-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
+      <div class="alert-content">
+        <div class="alert-title">New Feature Available</div>
+        <div class="alert-text">AI-powered competitor analysis is now available for all Pro plans.</div>
+      </div>
+    </div>
+    <div class="alert alert-success" role="alert">
+      <svg class="alert-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+      <div class="alert-content">
+        <div class="alert-title">Analysis Complete</div>
+        <div class="alert-text">Your website has been successfully analyzed. View your report below.</div>
+      </div>
+    </div>
+    <div class="alert alert-warning" role="alert">
+      <svg class="alert-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+      <div class="alert-content">
+        <div class="alert-title">API Rate Limit</div>
+        <div class="alert-text">You are approaching your monthly API limit. Consider upgrading your plan.</div>
+      </div>
+    </div>
+    <div class="alert alert-error" role="alert">
+      <svg class="alert-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg>
+      <div class="alert-content">
+        <div class="alert-title">Connection Failed</div>
+        <div class="alert-text">Unable to connect to the analysis server. Please try again later.</div>
+      </div>
+    </div>
+
+    <div class="component-label">Tabs</div>
+    <div class="tabs" role="tablist">
+      <button class="tab-btn" role="tab" data-tab="overview" onclick="switchTab(this, 'overview')">Overview</button>
+      <button class="tab-btn active" role="tab" data-tab="analytics" onclick="switchTab(this, 'analytics')">Analytics</button>
+      <button class="tab-btn" role="tab" data-tab="settings" onclick="switchTab(this, 'settings')">Settings</button>
+    </div>
+    <div class="tab-content" id="tab-overview">
+      <p class="type-body">Your project overview and summary metrics will appear here.</p>
+    </div>
+    <div class="tab-content active" id="tab-analytics">
+      <p class="type-body">Detailed analytics and performance data for your AI search visibility.</p>
+    </div>
+    <div class="tab-content" id="tab-settings">
+      <p class="type-body">Configure notification preferences, API keys, and team settings.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================
+     SECTION 10: AI-SPECIFIC PATTERNS
+     ============================================ -->
+<section class="section" id="patterns">
+  <div class="container">
+    <div class="section-number">09</div>
+    <h2 class="section-title">AI-Specific Patterns</h2>
+
+    <!-- Chat Interface -->
+    <div class="component-label" style="margin-top:0;">AI Chat Interface</div>
+    <div class="chat-container">
+      <div class="chat-header">WorkfxAI Assistant</div>
+      <div class="chat-messages">
+        <div class="chat-msg user">
+          <div class="chat-avatar human">Y</div>
+          <div class="chat-bubble">How can I improve my website's visibility in ChatGPT search results?</div>
+        </div>
+        <div class="chat-msg ai">
+          <div class="chat-avatar ai">AI</div>
+          <div class="chat-bubble">Based on my analysis of your website, here are 3 key recommendations:<br><br><strong>1. Add structured FAQ sections</strong> to your main pages. AI models heavily reference Q&A content.<br><br><strong>2. Include authoritative citations</strong> and link to primary sources. This builds trust signals.<br><br><strong>3. Optimize your meta descriptions</strong> with natural language queries your customers actually ask.</div>
+        </div>
+        <div class="chat-msg user">
+          <div class="chat-avatar human">Y</div>
+          <div class="chat-bubble">Can you generate a FAQ section for my homepage?</div>
+        </div>
+        <div class="chat-msg ai">
+          <div class="chat-avatar ai">AI</div>
+          <div class="chat-typing">
+            <span class="chat-typing-dot"></span>
+            <span class="chat-typing-dot"></span>
+            <span class="chat-typing-dot"></span>
+          </div>
+        </div>
+      </div>
+      <div class="chat-input-bar">
+        <input type="text" class="chat-input" placeholder="Ask WorkfxAI anything..." aria-label="Chat message input">
+        <button class="chat-send-btn" aria-label="Send message">
+          <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- AI Generation Loading -->
+    <div class="component-label">AI Content Generation</div>
+    <div class="ai-gen-card" id="aiGenCard">
+      <div class="ai-gen-progress">
+        <div class="ai-gen-progress-fill" id="aiGenProgress"></div>
+      </div>
+      <div class="ai-gen-body">
+        <div class="ai-gen-status">
+          <div class="spinner" style="width:18px;height:18px;border-width:2px;"></div>
+          <span id="aiGenStatus">Analyzing your website...</span>
+        </div>
+        <div class="ai-gen-skeleton-lines">
+          <div class="ai-gen-skeleton" id="genLine1" style="width:100%;"></div>
+          <div class="ai-gen-skeleton" id="genLine2" style="width:85%;"></div>
+          <div class="ai-gen-skeleton" id="genLine3" style="width:60%;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dashboard Metrics -->
+    <div class="component-label">Dashboard Metrics</div>
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-label">Visitors</div>
+        <div class="metric-value">2,847</div>
+        <div class="metric-trend up">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 4l4 4H9v4H7V8H4l4-4z"/></svg>
+          +12.5%
+        </div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">AI Share</div>
+        <div class="metric-value">47%</div>
+        <div class="metric-trend up">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 4l4 4H9v4H7V8H4l4-4z"/></svg>
+          +8.2%
+        </div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Keywords</div>
+        <div class="metric-value">156</div>
+        <div class="metric-trend up">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 4l4 4H9v4H7V8H4l4-4z"/></svg>
+          +23
+        </div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Value</div>
+        <div class="metric-value">$4.2k</div>
+        <div class="metric-trend up">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 4l4 4H9v4H7V8H4l4-4z"/></svg>
+          +18.7%
+        </div>
+      </div>
+    </div>
+
+    <!-- Onboarding Step -->
+    <div class="component-label">Onboarding Step</div>
+    <div class="onboarding-card">
+      <div class="onboarding-dots">
+        <div class="onboarding-dot done"></div>
+        <div class="onboarding-dot active"></div>
+        <div class="onboarding-dot"></div>
+        <div class="onboarding-dot"></div>
+      </div>
+      <h3 class="onboarding-title">What type of business are you?</h3>
+      <div class="onboarding-options">
+        <div class="onboarding-option" onclick="selectOption(this)">
+          <div class="onboarding-option-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+          </div>
+          <div class="onboarding-option-label">E-commerce</div>
+          <div class="onboarding-option-desc">Online store or marketplace</div>
+        </div>
+        <div class="onboarding-option selected" onclick="selectOption(this)">
+          <div class="onboarding-option-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          </div>
+          <div class="onboarding-option-label">SaaS</div>
+          <div class="onboarding-option-desc">Software as a service</div>
+        </div>
+        <div class="onboarding-option" onclick="selectOption(this)">
+          <div class="onboarding-option-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+          </div>
+          <div class="onboarding-option-label">Agency</div>
+          <div class="onboarding-option-desc">Marketing or creative agency</div>
+        </div>
+        <div class="onboarding-option" onclick="selectOption(this)">
+          <div class="onboarding-option-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+          </div>
+          <div class="onboarding-option-label">Other</div>
+          <div class="onboarding-option-desc">Something else entirely</div>
+        </div>
+      </div>
+      <button class="onboarding-continue">Continue</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================
+     SECTION 11: LAYOUT TEMPLATES
+     ============================================ -->
+<section class="section" id="layouts">
+  <div class="container">
+    <div class="section-number">10</div>
+    <h2 class="section-title">Layout Templates</h2>
+
+    <!-- Landing Hero -->
+    <div class="component-label" style="margin-top:0;">Landing Hero</div>
+    <div class="template-landing">
+      <div class="template-landing-inner">
+        <span class="template-badge-pill">AI-Powered SEO</span>
+        <h2 class="template-headline">Get discovered by AI search engines</h2>
+        <p class="template-sub">Optimize your brand's presence across ChatGPT, Perplexity, and Gemini. Know exactly how AI talks about you.</p>
+        <div class="template-btns">
+          <button class="btn btn-primary btn-lg">Start Free Trial</button>
+          <button class="btn btn-ghost btn-lg">Watch Demo</button>
+        </div>
+        <div class="template-trust">Trusted by 500+ brands</div>
+        <div class="template-logos">
+          <div class="template-logo-placeholder"></div>
+          <div class="template-logo-placeholder"></div>
+          <div class="template-logo-placeholder"></div>
+          <div class="template-logo-placeholder"></div>
+          <div class="template-logo-placeholder"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feature Grid -->
+    <div class="component-label">Feature Grid</div>
+    <div class="template-features">
+      <div class="template-features-header">
+        <h2 class="template-features-title">Everything you need</h2>
+      </div>
+      <div class="grid-3">
+        <article class="feature-card" style="background:var(--white);">
+          <div class="feature-card-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          </div>
+          <h3 class="feature-card-title">Content Generation</h3>
+          <p class="feature-card-desc">AI-written content optimized for both traditional search and generative engines.</p>
+        </article>
+        <article class="feature-card" style="background:var(--white);">
+          <div class="feature-card-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </div>
+          <h3 class="feature-card-title">Visibility Tracking</h3>
+          <p class="feature-card-desc">Monitor how AI models cite and recommend your brand in real time.</p>
+        </article>
+        <article class="feature-card" style="background:var(--white);">
+          <div class="feature-card-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          </div>
+          <h3 class="feature-card-title">Competitive Intel</h3>
+          <p class="feature-card-desc">See where competitors appear in AI answers and find gaps to exploit.</p>
+        </article>
+      </div>
+    </div>
+
+    <!-- Social Proof -->
+    <div class="component-label">Social Proof</div>
+    <div style="margin-bottom:var(--space-12);">
+      <article class="testimonial-card" style="max-width:100%;">
+        <div class="testimonial-quote-mark">&ldquo;</div>
+        <p class="testimonial-text">We went from invisible in AI search to being the top recommended solution in our category. WorkfxAI gave us the playbook and the tools to make it happen.</p>
+        <div class="testimonial-footer">
+          <div class="testimonial-avatar">MR</div>
+          <div>
+            <div class="testimonial-name">Michael Rivera</div>
+            <div class="testimonial-role">Head of Growth, CloudSync</div>
+          </div>
+        </div>
+      </article>
+      <div class="template-logos" style="margin-top:var(--space-8);justify-content:flex-start;">
+        <div class="template-logo-placeholder"></div>
+        <div class="template-logo-placeholder"></div>
+        <div class="template-logo-placeholder"></div>
+        <div class="template-logo-placeholder"></div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="component-label">Footer</div>
+    <div class="template-footer">
+      <div class="template-footer-inner">
+        <div class="template-footer-grid">
+          <div>
+            <div class="template-footer-brand">WorkfxAI</div>
+            <p class="template-footer-tagline">The intelligent platform for AI search optimization. Get discovered by the next generation of search.</p>
+          </div>
+          <div>
+            <div class="template-footer-col-title">Product</div>
+            <ul class="template-footer-links">
+              <li><a href="#">Features</a></li>
+              <li><a href="#">Pricing</a></li>
+              <li><a href="#">Integrations</a></li>
+              <li><a href="#">Changelog</a></li>
+            </ul>
+          </div>
+          <div>
+            <div class="template-footer-col-title">Company</div>
+            <ul class="template-footer-links">
+              <li><a href="#">About</a></li>
+              <li><a href="#">Blog</a></li>
+              <li><a href="#">Careers</a></li>
+              <li><a href="#">Contact</a></li>
+            </ul>
+          </div>
+          <div>
+            <div class="template-footer-col-title">Resources</div>
+            <ul class="template-footer-links">
+              <li><a href="#">Documentation</a></li>
+              <li><a href="#">Help Center</a></li>
+              <li><a href="#">API Reference</a></li>
+              <li><a href="#">Community</a></li>
+            </ul>
+          </div>
+          <div>
+            <div class="template-footer-col-title">Legal</div>
+            <ul class="template-footer-links">
+              <li><a href="#">Privacy</a></li>
+              <li><a href="#">Terms</a></li>
+              <li><a href="#">Security</a></li>
+              <li><a href="#">GDPR</a></li>
+            </ul>
+          </div>
+        </div>
+        <div class="template-footer-bottom">
+          <div class="template-footer-copyright">2026 WorkfxAI. All rights reserved.</div>
+          <div class="template-footer-social">
+            <a href="#" aria-label="Twitter">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+            </a>
+            <a href="#" aria-label="LinkedIn">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+            </a>
+            <a href="#" aria-label="GitHub">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+</main>
+
+<!-- ============================================
+     JAVASCRIPT
+     ============================================ -->
+<script>
+(function() {
+
+  'use strict';
+
+  // ============================================
+  // TAB SWITCHING
+  // ============================================
+  window.switchTab = function(btn, tabId) {
+    // Deactivate all tabs
+    var tabBtns = btn.parentElement.querySelectorAll('.tab-btn');
+    for (var i = 0; i < tabBtns.length; i++) {
+      tabBtns[i].classList.remove('active');
+    }
+    // Deactivate all content
+    var tabContents = btn.parentElement.parentElement.querySelectorAll('.tab-content');
+    for (var j = 0; j < tabContents.length; j++) {
+      tabContents[j].classList.remove('active');
+    }
+    // Activate clicked tab
+    btn.classList.add('active');
+    var target = document.getElementById('tab-' + tabId);
+    if (target) target.classList.add('active');
+  };
+
+  // ============================================
+  // ONBOARDING OPTION SELECTION
+  // ============================================
+  window.selectOption = function(el) {
+    var siblings = el.parentElement.querySelectorAll('.onboarding-option');
+    for (var i = 0; i < siblings.length; i++) {
+      siblings[i].classList.remove('selected');
+    }
+    el.classList.add('selected');
+  };
+
+  // ============================================
+  // AI GENERATION ANIMATION
+  // ============================================
+  var statusMessages = [
+    'Analyzing your website...',
+    'Scanning competitor landscape...',
+    'Generating content...',
+    'Optimizing for AI search...',
+    'Finalizing recommendations...'
+  ];
+
+  var currentStatusIndex = 0;
+  var progressFill = document.getElementById('aiGenProgress');
+  var statusText = document.getElementById('aiGenStatus');
+  var genLine1 = document.getElementById('genLine1');
+  var genLine2 = document.getElementById('genLine2');
+  var genLine3 = document.getElementById('genLine3');
+  var lines = [genLine1, genLine2, genLine3];
+
+  function runAiGenAnimation() {
+    currentStatusIndex = 0;
+    progressFill.style.width = '0%';
+
+    // Reset lines
+    for (var i = 0; i < lines.length; i++) {
+      lines[i].classList.remove('generated');
+    }
+
+    var totalSteps = statusMessages.length;
+    var stepDuration = 2000;
+
+    function nextStep() {
+      if (currentStatusIndex >= totalSteps) {
+        // Reset after a pause
+        setTimeout(function() {
+          runAiGenAnimation();
+        }, 3000);
+        return;
+      }
+
+      statusText.textContent = statusMessages[currentStatusIndex];
+      var progress = ((currentStatusIndex + 1) / totalSteps) * 100;
+      progressFill.style.width = progress + '%';
+
+      // Generate lines progressively
+      if (currentStatusIndex >= 2 && lines[0]) {
+        lines[0].classList.add('generated');
+      }
+      if (currentStatusIndex >= 3 && lines[1]) {
+        lines[1].classList.add('generated');
+      }
+      if (currentStatusIndex >= 4 && lines[2]) {
+        lines[2].classList.add('generated');
+      }
+
+      currentStatusIndex++;
+      setTimeout(nextStep, stepDuration);
+    }
+
+    setTimeout(nextStep, 500);
+  }
+
+  // Start animation when visible
+  var aiGenCard = document.getElementById('aiGenCard');
+  var animationStarted = false;
+
+  function checkAiGenVisibility() {
+    if (animationStarted) return;
+    var rect = aiGenCard.getBoundingClientRect();
+    if (rect.top < window.innerHeight && rect.bottom > 0) {
+      animationStarted = true;
+      runAiGenAnimation();
+    }
+  }
+
+  window.addEventListener('scroll', checkAiGenVisibility);
+  // Also check on load
+  checkAiGenVisibility();
+
+  // ============================================
+  // TOGGLE SWITCH (fix initial state)
+  // ============================================
+  var toggleInputs = document.querySelectorAll('.toggle input');
+  for (var t = 0; t < toggleInputs.length; t++) {
+    (function(input) {
+      input.addEventListener('change', function() {
+        var thumb = this.parentElement.querySelector('.toggle-thumb');
+        thumb.style.transform = this.checked ? 'translateX(20px)' : 'translateX(0)';
+      });
+    })(toggleInputs[t]);
+  }
+
+  // ============================================
+  // SMOOTH SCROLL for nav links
+  // ============================================
+  var navLinks = document.querySelectorAll('.nav-links a');
+  for (var n = 0; n < navLinks.length; n++) {
+    navLinks[n].addEventListener('click', function(e) {
+      var href = this.getAttribute('href');
+      if (href && href.charAt(0) === '#') {
+        e.preventDefault();
+        var target = document.getElementById(href.substring(1));
+        if (target) {
+          var offset = 72; // nav height + padding
+          var top = target.getBoundingClientRect().top + window.pageYOffset - offset;
+          window.scrollTo({ top: top, behavior: 'smooth' });
+        }
+      }
+    });
+  }
+
+  // ============================================
+  // ACTIVE NAV HIGHLIGHT ON SCROLL
+  // ============================================
+  var sections = document.querySelectorAll('section[id]');
+  function highlightNav() {
+    var scrollPos = window.scrollY + 100;
+    for (var s = 0; s < sections.length; s++) {
+      var section = sections[s];
+      var top = section.offsetTop;
+      var height = section.offsetHeight;
+      var id = section.getAttribute('id');
+      if (scrollPos >= top && scrollPos < top + height) {
+        var activeLink = document.querySelector('.nav-links a[href="#' + id + '"]');
+        var allLinks = document.querySelectorAll('.nav-links a');
+        for (var l = 0; l < allLinks.length; l++) {
+          allLinks[l].style.color = '';
+        }
+        if (activeLink) {
+          activeLink.style.color = 'var(--black)';
+        }
+      }
+    }
+  }
+
+  window.addEventListener('scroll', highlightNav);
+
+  // ============================================
+  // PROGRESS BAR ANIMATION
+  // ============================================
+  var progressBar = document.getElementById('progressBar');
+  var progressAnimated = false;
+
+  function checkProgressVisibility() {
+    if (progressAnimated) return;
+    var rect = progressBar.getBoundingClientRect();
+    if (rect.top < window.innerHeight && rect.bottom > 0) {
+      progressAnimated = true;
+      progressBar.style.width = '0%';
+      setTimeout(function() {
+        progressBar.style.width = '65%';
+      }, 200);
+    }
+  }
+
+  window.addEventListener('scroll', checkProgressVisibility);
+  checkProgressVisibility();
+
+})();
+</script>
+
+</body>
+</html>
+
+    
