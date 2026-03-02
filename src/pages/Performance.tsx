@@ -67,6 +67,7 @@ export default function Performance() {
   const { setChatOpen, setSidebarCollapsed, setInitialMessage } = useLayoutStore();
   const [activeTab, setActiveTab] = useState<TabId>('data');
   const [timeRange, setTimeRange] = useState('7d');
+  const [isVisibilityConfigured, setIsVisibilityConfigured] = useState(false);
   const [expandedKeywords, setExpandedKeywords] = useState<string[]>(['k1', 'k2']);
   const [selectedCell, setSelectedCell] = useState<{keyword: string, query: string, platform: string, status: string} | null>(null);
 
@@ -285,7 +286,6 @@ export default function Performance() {
   const tabs: Tab[] = [
     { id: 'data', label: 'Data Display', icon: BarChart2 },
     { id: 'query', label: 'Query Attribution', icon: MessageSquare },
-    { id: 'setting', label: 'Setting', icon: Settings },
   ];
 
   const renderContent = () => {
@@ -437,11 +437,12 @@ export default function Performance() {
       {/* Main Content Area - Darker Background for Contrast */}
       <div className="bg-slate-50/50 rounded-3xl border border-gray-200 shadow-sm p-6 relative min-h-[500px]">
         {/* Overlay for Free/Pending states */}
-        {(role === 'free' || (role === 'pending' && activeTab !== 'setting')) && renderContent()}
+        {role === 'free' && renderContent()}
 
         {/* Tab Content */}
         {activeTab === 'data' && (
-          <div className={clsx((role === 'free' || role === 'pending') && "filter blur-sm select-none pointer-events-none")}>
+          <>
+          <div className={clsx(role === 'free' && "filter blur-sm select-none pointer-events-none")}>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
               {/* Left Column: Traffic Analytics */}
               <div className="space-y-6">
@@ -476,103 +477,95 @@ export default function Performance() {
                   </div>
                 </div>
 
-                {!isGA4Connected ? (
-                  <div className="relative rounded-2xl overflow-hidden border border-gray-200 bg-white shadow-sm h-[400px] flex flex-col items-center justify-center text-center p-8 group hover:border-blue-200 transition-all duration-300">
-                    {/* Placeholder Content (Blurred) */}
-                    <div className="absolute inset-0 opacity-10 filter blur-sm pointer-events-none select-none p-4">
-                       <div className="grid grid-cols-3 gap-4 mb-8">
-                         {[1,2,3].map(i => <div key={i} className="h-24 bg-gray-200 rounded-xl"></div>)}
-                       </div>
-                       <div className="h-48 bg-gray-200 rounded-xl"></div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                      <div className="text-xs text-gray-500 font-bold uppercase tracking-wider">Organic</div>
                     </div>
-                    
-                    {/* CTA */}
-                    <div className="relative z-10 bg-white/95 backdrop-blur-xl shadow-xl p-8 rounded-3xl max-w-sm border border-gray-100 transform group-hover:scale-105 transition-transform duration-300">
-                      <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm">
-                        <BarChart2 size={32} />
-                      </div>
-                      <h4 className="font-bold text-gray-900 text-xl mb-3">Connect Google Analytics</h4>
-                      <p className="text-sm text-gray-500 mb-6 leading-relaxed">Link your GA4 account to unlock comprehensive organic traffic insights and AI attribution data.</p>
-                      <button 
-                        onClick={() => setActiveTab('setting')}
-                        className="w-full bg-blue-600 text-white py-3.5 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 active:scale-95 flex items-center justify-center gap-2"
-                      >
-                        <Settings size={18} /> Configure Now
-                      </button>
+                    <div className="text-2xl font-bold text-gray-900 tracking-tight">{isGA4Connected ? '12,500' : '?'}</div>
+                    <div className="text-[10px] text-gray-400 mt-1 font-medium">{isGA4Connected ? 'Source: GA4' : 'Connect GA4 to view'}</div>
+                  </div>
+                  <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                      <div className="text-xs text-gray-500 font-bold uppercase tracking-wider">AI Direct</div>
+                    </div>
+                    <div className="text-2xl font-bold text-gray-900 tracking-tight">{isGA4Connected ? '1,200' : '?'}</div>
+                    <div className={clsx("text-[10px] font-bold mt-1 px-1.5 py-0.5 rounded w-fit", isGA4Connected ? "text-green-600 bg-green-50" : "text-gray-400 bg-gray-50")}>
+                      {isGA4Connected ? '15% of total' : 'Awaiting link'}
                     </div>
                   </div>
-                ) : (
-                  <>
-                    <div className="grid grid-cols-3 gap-4">
-                       <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-                         <div className="flex items-center gap-2 mb-2">
-                           <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                           <div className="text-xs text-gray-500 font-bold uppercase tracking-wider">Organic</div>
-                         </div>
-                         <div className="text-2xl font-bold text-gray-900 tracking-tight">12,500</div>
-                         <div className="text-[10px] text-gray-400 mt-1 font-medium">Source: GA4</div>
-                       </div>
-                       <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-                         <div className="flex items-center gap-2 mb-2">
-                           <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                           <div className="text-xs text-gray-500 font-bold uppercase tracking-wider">AI Direct</div>
-                         </div>
-                         <div className="text-2xl font-bold text-gray-900 tracking-tight">1,200</div>
-                         <div className="text-[10px] text-green-600 font-bold mt-1 bg-green-50 px-1.5 py-0.5 rounded w-fit">15% of total</div>
-                       </div>
-                       <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-                         <div className="flex items-center gap-2 mb-2">
-                           <div className="w-2 h-2 rounded-full bg-purple-500"></div>
-                           <div className="text-xs text-gray-500 font-bold uppercase tracking-wider">Social</div>
-                         </div>
-                         <div className="text-2xl font-bold text-gray-900 tracking-tight">850</div>
-                         <div className="text-[10px] text-purple-600 font-bold mt-1 bg-purple-50 px-1.5 py-0.5 rounded w-fit">8% of total</div>
-                       </div>
+                  <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+                      <div className="text-xs text-gray-500 font-bold uppercase tracking-wider">Social</div>
                     </div>
+                    <div className="text-2xl font-bold text-gray-900 tracking-tight">{isGA4Connected ? '850' : '?'}</div>
+                    <div className={clsx("text-[10px] font-bold mt-1 px-1.5 py-0.5 rounded w-fit", isGA4Connected ? "text-purple-600 bg-purple-50" : "text-gray-400 bg-gray-50")}>
+                      {isGA4Connected ? '8% of total' : 'Awaiting link'}
+                    </div>
+                  </div>
+                </div>
 
-                    {/* Chart Controls */}
-                    <div className="flex justify-between items-center mt-6 mb-4">
-                       <h4 className="font-bold text-gray-900 text-sm">Traffic Trend</h4>
-                       <div className="flex items-center gap-1 bg-gray-100/50 border border-gray-200 rounded-lg p-1">
-                         {['24h', '3d', '7d'].map((range) => (
-                           <button
-                             key={range}
-                             onClick={() => setTimeRange(range)}
-                             className={clsx(
-                               "px-3 py-1 rounded-md text-xs font-bold transition-all",
-                               timeRange === range 
-                                 ? "bg-white text-gray-900 shadow-sm ring-1 ring-black/5" 
-                                 : "text-gray-500 hover:text-gray-900 hover:bg-gray-200/50"
-                             )}
-                           >
-                             {range.toUpperCase()}
-                           </button>
-                         ))}
-                       </div>
-                    </div>
+                <div className="flex justify-between items-center mt-6 mb-4">
+                  <h4 className="font-bold text-gray-900 text-sm">Traffic Trend</h4>
+                  <div className="flex items-center gap-1 bg-gray-100/50 border border-gray-200 rounded-lg p-1">
+                    {['24h', '3d', '7d'].map((range) => (
+                      <button
+                        key={range}
+                        onClick={() => setTimeRange(range)}
+                        className={clsx(
+                          "px-3 py-1 rounded-md text-xs font-bold transition-all",
+                          timeRange === range 
+                            ? "bg-white text-gray-900 shadow-sm ring-1 ring-black/5" 
+                            : "text-gray-500 hover:text-gray-900 hover:bg-gray-200/50"
+                        )}
+                      >
+                        {range.toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-                    {/* Chart */}
-                    <div className="h-[300px] w-full bg-white border border-gray-200 rounded-2xl p-6 shadow-sm relative overflow-hidden">
-                       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-green-500 to-purple-500 opacity-20"></div>
-                       <ResponsiveContainer width="100%" height="100%">
-                         <LineChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                           <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                           <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 500 }} dy={10} />
-                           <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 500 }} />
-                           <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 500 }} />
-                           <Tooltip 
-                             contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '12px', padding: '12px' }}
-                             cursor={{ stroke: '#cbd5e1', strokeWidth: 1, strokeDasharray: '4 4' }}
-                           />
-                           <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '12px', fontWeight: 500 }} iconType="circle" />
-                           <Line yAxisId="left" type="monotone" dataKey="organic" name="Total Traffic" stroke="#3b82f6" strokeWidth={3} dot={false} activeDot={{ r: 6, strokeWidth: 0 }} />
-                           <Line yAxisId="right" type="monotone" dataKey="ai" name="AI Traffic" stroke="#10b981" strokeWidth={3} dot={false} />
-                           <Line yAxisId="right" type="monotone" dataKey="social" name="Social Traffic" stroke="#8b5cf6" strokeWidth={3} dot={false} />
-                         </LineChart>
-                       </ResponsiveContainer>
+                <div className="h-[300px] w-full bg-white border border-gray-200 rounded-2xl p-6 shadow-sm relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-green-500 to-purple-500 opacity-20"></div>
+                  {!isGA4Connected && (
+                    <div className="absolute inset-0 bg-white/70 backdrop-blur-sm flex items-center justify-center z-20">
+                      <button
+                        onClick={() => {
+                          setModalTitle('Connect GA4');
+                          setModalBody('Do you have a GA4 account?');
+                          setModalLink(null);
+                          setGa4Selection(null);
+                          setSitePlatform('');
+                          setCodeContent('');
+                          setIsGeneratingCode(false);
+                          setIsModalOpen(true);
+                        }}
+                        className="px-5 py-2.5 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg active:scale-95 flex items-center gap-2"
+                      >
+                        <Settings size={16} /> Connect GA4
+                      </button>
                     </div>
-                  </>
-                )}
+                  )}
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 500 }} dy={10} />
+                      <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 500 }} />
+                      <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 500 }} />
+                      <Tooltip 
+                        contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '12px', padding: '12px' }}
+                        cursor={{ stroke: '#cbd5e1', strokeWidth: 1, strokeDasharray: '4 4' }}
+                      />
+                      <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '12px', fontWeight: 500 }} iconType="circle" />
+                      <Line yAxisId="left" type="monotone" dataKey="organic" name="Total Traffic" stroke="#3b82f6" strokeWidth={3} dot={false} activeDot={{ r: 6, strokeWidth: 0 }} />
+                      <Line yAxisId="right" type="monotone" dataKey="ai" name="AI Traffic" stroke="#10b981" strokeWidth={3} dot={false} />
+                      <Line yAxisId="right" type="monotone" dataKey="social" name="Social Traffic" stroke="#8b5cf6" strokeWidth={3} dot={false} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
 
               {/* Right Column: Visibility & Sentiment */}
@@ -604,7 +597,7 @@ export default function Performance() {
                     </div>
                     
                     <div className="relative z-10 mt-2">
-                      <div className="text-3xl font-bold text-gray-900 tracking-tight">72<span className="text-lg text-gray-400 font-medium">/100</span></div>
+                      <div className="text-3xl font-bold text-gray-900 tracking-tight">{isVisibilityConfigured ? <>72<span className="text-lg text-gray-400 font-medium">/100</span></> : '?'}</div>
                       <div className="flex items-center gap-2 mt-2">
                         <span className="bg-green-50 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 border border-green-100">
                           <TrendingUp size={10} /> +5.2%
@@ -638,7 +631,7 @@ export default function Performance() {
                     </div>
 
                     <div className="relative z-10 mt-2">
-                      <div className="text-3xl font-bold text-gray-900 tracking-tight">85%</div>
+                      <div className="text-3xl font-bold text-gray-900 tracking-tight">{isVisibilityConfigured ? '85%' : '?'}</div>
                       <div className="flex items-center gap-2 mt-2">
                         <span className="bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 border border-indigo-100">
                           Positive
@@ -667,7 +660,20 @@ export default function Performance() {
                     </select>
                   </div>
                   
-                  <div className="h-[260px] w-full relative z-10">
+                <div className="h-[260px] w-full relative z-10">
+                  {!isVisibilityConfigured && (
+                    <div className="absolute inset-0 bg-white/70 backdrop-blur-sm flex items-center justify-center z-20">
+                      <button
+                        onClick={() => {
+                          const el = document.getElementById('visibility-settings');
+                          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }}
+                        className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 shadow-lg active:scale-95 flex items-center gap-2"
+                      >
+                        <Settings size={16} /> Configure AI Visibility
+                      </button>
+                    </div>
+                  )}
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart 
                         data={activeMetric === 'visibility' ? [
@@ -718,6 +724,182 @@ export default function Performance() {
               </div>
             </div>
           </div>
+          
+          <div className="mt-8 space-y-8">
+            <div id="visibility-settings" className="bg-white border border-gray-200 rounded-xl p-6">
+              <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+                <div className="w-8 h-8 bg-orange-100 text-orange-600 rounded-lg flex items-center justify-center">
+                  <BarChart2 size={18} />
+                </div>
+                GA4 Data Authorization
+              </h3>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Connect your Google Analytics 4 account</p>
+                    <p className="text-xs text-gray-400">Required for organic traffic tracking</p>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <button
+                      className="px-4 py-2 bg-black text-white font-medium rounded-lg hover:bg-gray-800 flex items-center gap-2"
+                      onClick={() => setGa4Selection('yes')}
+                    >
+                      <ExternalLink size={16} /> I have a GA4 account
+                    </button>
+                    <button
+                      className="px-4 py-2 bg-white border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50"
+                      onClick={() => setGa4Selection('no')}
+                    >
+                      I don’t have GA4
+                    </button>
+                    <div className="relative">
+                      <button
+                        className="px-2.5 py-1.5 border border-gray-300 rounded-lg text-xs text-gray-600 hover:bg-gray-50 inline-flex items-center gap-1"
+                        onClick={() => setGaDebugOpen(v => !v)}
+                        aria-haspopup="menu"
+                        aria-expanded={gaDebugOpen}
+                        title="Debug GA4 status"
+                      >
+                        <Settings size={14} />
+                        Debug
+                      </button>
+                      <span
+                        className={
+                          gaDebugStatus === 'not_connected'
+                            ? 'ml-2 text-[10px] px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-100'
+                            : gaDebugStatus === 'needs_change'
+                            ? 'ml-2 text-[10px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-100'
+                            : 'ml-2 text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100'
+                        }
+                      >
+                        {gaDebugStatus === 'not_connected' ? 'Not connected' : gaDebugStatus === 'needs_change' ? 'Connected (needs changes)' : 'Linking'}
+                      </span>
+                      {gaDebugOpen && (
+                        <div className="absolute right-0 mt-1 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
+                          <button
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50"
+                            onClick={() => {
+                              setGaDebugStatus('not_connected');
+                              setGaDebugOpen(false);
+                            }}
+                          >
+                            Not connected
+                          </button>
+                          <button
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50"
+                            onClick={() => {
+                              setGaDebugStatus('needs_change');
+                              setGaDebugOpen(false);
+                            }}
+                          >
+                            Connected (needs changes)
+                          </button>
+                          <button
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50"
+                            onClick={() => {
+                              setGaDebugStatus('linking');
+                              setGaDebugOpen(false);
+                            }}
+                          >
+                            Linking
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                {ga4Selection === 'no' && (
+                  <div className="space-y-3">
+                    <div>
+                      <h4 className="text-sm font-bold text-gray-900 mb-1">Choose your site platform</h4>
+                      <p className="text-xs text-gray-500">We’ll provide the appropriate connection steps</p>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {['Shopify', 'WordPress', 'Webflow', 'Wix', 'Squarespace', 'Custom Site'].map((name) => (
+                        <label key={name} className="cursor-pointer">
+                          <input
+                            type="radio"
+                            name="sitePlatform"
+                            value={name}
+                            className="sr-only peer"
+                            onChange={() => setSitePlatform(name)}
+                          />
+                          <div className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 peer-checked:border-black peer-checked:bg-black/5">
+                            {name}
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                    <div className="flex justify-end">
+                      <button
+                        className="px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800 font-medium disabled:opacity-50"
+                        disabled={!sitePlatform}
+                        onClick={handleConfirmPlatform}
+                      >
+                        Confirm Platform
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="bg-white border border-gray-200 rounded-xl p-6">
+              <h3 className="font-bold text-lg mb-4">Monitoring Platforms</h3>
+              <div className="space-y-3">
+                {['ChatGPT', 'Claude', 'Gemini', 'Perplexity', 'SearchGPT'].map(platform => (
+                  <label key={platform} className="flex items-center justify-between p-3 border border-gray-100 rounded-lg hover:bg-gray-50 cursor-pointer">
+                    <span className="font-medium text-gray-700">{platform}</span>
+                    <input type="checkbox" defaultChecked className="w-5 h-5 text-primary rounded border-gray-300 focus:ring-primary" />
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white border border-gray-200 rounded-xl p-6">
+              <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+                <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center">
+                  <Clock size={18} />
+                </div>
+                Monitoring Frequency
+              </h3>
+              <div className="space-y-4">
+                <div className="bg-blue-50 border border-blue-100 text-blue-800 text-sm p-3 rounded-lg flex items-start gap-2">
+                  <Info size={16} className="mt-0.5 shrink-0" />
+                  <p>AI visibility scores typically don't change drastically day-to-day. We recommend a <span className="font-bold">3-day cycle</span> to optimize token usage and costs.</p>
+                </div>
+                
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { value: '1', label: 'Daily', desc: 'High frequency' },
+                    { value: '3', label: 'Every 3 Days', desc: 'Recommended' },
+                    { value: '7', label: 'Weekly', desc: 'Low frequency' }
+                  ].map((option) => (
+                    <label key={option.value} className="cursor-pointer relative group">
+                      <input type="radio" name="frequency" value={option.value} defaultChecked={option.value === '3'} className="peer sr-only" />
+                      <div className="border border-gray-200 rounded-xl p-4 hover:bg-gray-50 peer-checked:border-primary peer-checked:bg-primary/5 peer-checked:ring-1 peer-checked:ring-primary transition-all text-center h-full">
+                        <div className="font-bold text-gray-900 mb-1">{option.label}</div>
+                        <div className="text-xs text-gray-500">{option.desc}</div>
+                      </div>
+                      {option.value === '3' && (
+                        <div className="absolute -top-2 left-1/2 -translate-x-1/2 bg-green-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
+                          BEST VALUE
+                        </div>
+                      )}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button className="bg-primary text-white px-8 py-3 rounded-xl font-bold hover:bg-primary/90 transition-all flex items-center gap-2 shadow-lg shadow-primary/20 active:scale-95">
+                <Save size={18} />
+                Save Settings
+              </button>
+            </div>
+          </div>
+          </>
         )}
 
         {activeTab === 'query' && (
@@ -727,7 +909,9 @@ export default function Performance() {
                  <thead>
                    <tr className="border-b border-gray-100">
                      <th className="p-4 font-semibold text-gray-500 text-sm min-w-[300px]">Keyword / Query</th>
-                     <th className="p-4 font-semibold text-gray-500 text-sm text-center">Visibility Score</th>
+                     <th className="p-4 font-semibold text-gray-500 text-sm text-center min-w-[140px]">Sentiment</th>
+                     <th className="p-4 font-semibold text-gray-500 text-sm text-center min-w-[220px]">AI Platforms</th>
+                     <th className="p-4 font-semibold text-gray-500 text-sm text-center min-w-[160px]">Visibility Score</th>
                    </tr>
                  </thead>
                  <tbody>
@@ -739,7 +923,7 @@ export default function Performance() {
                          className="bg-gray-50 hover:bg-gray-100 cursor-pointer border-b border-gray-100 transition-colors"
                          onClick={() => toggleKeyword(group.id)}
                        >
-                         <td colSpan={2} className="p-4 font-bold text-gray-800 flex items-center gap-2">
+                         <td colSpan={4} className="p-4 font-bold text-gray-800 flex items-center gap-2">
                            {expandedKeywords.includes(group.id) ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                            {group.keyword}
                            <span className="text-xs font-normal text-gray-400 ml-2">({group.queries.length} queries)</span>
@@ -753,11 +937,22 @@ export default function Performance() {
                          // Calculate Query-level Visibility
                          let qMentioned = 0;
                          let qTotal = 0;
+                         let qNegative = 0;
                          platforms.forEach(p => {
-                           if (query.platforms?.[p.id] !== 'not_mentioned') qMentioned++;
+                           const st = query.platforms?.[p.id];
+                           if (st !== 'not_mentioned') qMentioned++;
+                           if (st === 'negative') qNegative++;
                            qTotal++;
                          });
                          const queryVisibility = qTotal > 0 ? Math.round((qMentioned / qTotal) * 100) : 0;
+                         
+                         // Derive simple Sentiment label
+                         let sentimentLabel: 'Positive' | 'Neutral' | 'Negative' = 'Neutral';
+                         if (qNegative > qMentioned) {
+                           sentimentLabel = 'Negative';
+                         } else if (qMentioned > 0 && qMentioned >= qNegative) {
+                           sentimentLabel = qNegative > 0 ? 'Neutral' : 'Positive';
+                         }
                          
                          return (
                            <React.Fragment key={query.id}>
@@ -768,24 +963,20 @@ export default function Performance() {
                                <td className="p-4 pl-12 text-sm text-gray-600 font-medium border-r border-gray-50 align-middle">
                                  {query.text}
                                </td>
+                               {/* Sentiment */}
+                               <td className="p-4 align-middle text-center">
+                                 <span className={clsx(
+                                   "text-xs font-bold px-2 py-1 rounded-full border",
+                                   sentimentLabel === 'Positive' && "bg-green-50 text-green-700 border-green-200",
+                                   sentimentLabel === 'Negative' && "bg-red-50 text-red-700 border-red-200",
+                                   sentimentLabel === 'Neutral' && "bg-gray-50 text-gray-600 border-gray-200"
+                                 )}>
+                                   {sentimentLabel}
+                                 </span>
+                               </td>
+                               {/* AI Platforms */}
                                <td className="p-4 align-middle">
                                  <div className="flex flex-col items-center gap-2">
-                                   {/* Score for Query */}
-                                   <div className="flex items-center gap-2 w-full max-w-[140px]">
-                                     <div className="text-xs font-bold text-gray-700 w-8 text-right">{queryVisibility}%</div>
-                                     <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                                       <div 
-                                         className={clsx(
-                                           "h-full rounded-full transition-all duration-500",
-                                           queryVisibility >= 80 ? "bg-green-500" : 
-                                           queryVisibility >= 50 ? "bg-yellow-500" : "bg-red-500"
-                                         )} 
-                                         style={{ width: `${queryVisibility}%` }}
-                                       ></div>
-                                     </div>
-                                   </div>
-
-                                   {/* Icons */}
                                    <div className="flex items-center justify-center gap-1.5">
                                    {platforms.map(platform => {
                                      // Safe access
@@ -829,9 +1020,27 @@ export default function Performance() {
                                        </button>
                                      );
                                    })}
-                                    </div>
+                                   </div>
                                   </div>
                                 </td>
+                               {/* Visibility Score */}
+                               <td className="p-4 align-middle">
+                                 <div className="flex flex-col items-center gap-2">
+                                   <div className="flex items-center gap-2 w-full max-w-[140px]">
+                                     <div className="text-xs font-bold text-gray-700 w-8 text-right">{queryVisibility}%</div>
+                                     <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                       <div 
+                                         className={clsx(
+                                           "h-full rounded-full transition-all duration-500",
+                                           queryVisibility >= 80 ? "bg-green-500" : 
+                                           queryVisibility >= 50 ? "bg-yellow-500" : "bg-red-500"
+                                         )} 
+                                         style={{ width: `${queryVisibility}%` }}
+                                       ></div>
+                                     </div>
+                                   </div>
+                                 </div>
+                               </td>
                               </tr>
 
                              {/* Expandable Detail Panel */}
@@ -1467,7 +1676,10 @@ export default function Performance() {
 
               {/* Save Button */}
               <div className="flex justify-end pt-4 pb-2">
-                <button className="bg-primary text-white px-8 py-3 rounded-xl font-bold hover:bg-primary/90 transition-all flex items-center gap-2 shadow-lg shadow-primary/20 active:scale-95">
+                <button 
+                  onClick={() => setIsVisibilityConfigured(true)}
+                  className="bg-primary text-white px-8 py-3 rounded-xl font-bold hover:bg-primary/90 transition-all flex items-center gap-2 shadow-lg shadow-primary/20 active:scale-95"
+                >
                   <Save size={18} />
                   Save Settings
                 </button>
@@ -1487,6 +1699,61 @@ export default function Performance() {
               </button>
             </div>
             <p className="text-sm text-gray-600 mb-4">{modalBody}</p>
+            {ga4Selection === null && (
+              <div className="flex items-center gap-2 mb-4">
+                <button
+                  className="px-3 py-2 text-sm bg-black text-white rounded-md hover:bg-gray-800"
+                  onClick={() => {
+                    window.open('https://analytics.google.com/', '_blank');
+                    setIsModalOpen(false);
+                  }}
+                >
+                  I have a GA4 account
+                </button>
+                <button
+                  className="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
+                  onClick={() => {
+                    setGa4Selection('no');
+                    setModalLink(null);
+                  }}
+                >
+                  I don’t have GA4
+                </button>
+              </div>
+            )}
+            {ga4Selection === 'no' && (
+              <div className="space-y-3 mb-4">
+                <div>
+                  <h4 className="text-sm font-bold text-gray-900 mb-1">Choose your site platform</h4>
+                  <p className="text-xs text-gray-500">We’ll provide the appropriate connection steps</p>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {['Shopify', 'WordPress', 'Webflow', 'Wix', 'Squarespace', 'Custom Site'].map((name) => (
+                    <label key={name} className="cursor-pointer">
+                      <input
+                        type="radio"
+                        name="sitePlatformModal"
+                        value={name}
+                        className="sr-only peer"
+                        onChange={() => setSitePlatform(name)}
+                      />
+                      <div className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 peer-checked:border-black peer-checked:bg-black/5">
+                        {name}
+                      </div>
+                    </label>
+                  ))}
+                </div>
+                <div className="flex justify-end">
+                  <button
+                    className="px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800 font-medium disabled:opacity-50"
+                    disabled={!sitePlatform}
+                    onClick={handleConfirmPlatform}
+                  >
+                    Confirm Platform
+                  </button>
+                </div>
+              </div>
+            )}
             {sitePlatform === 'Custom Site' ? (
               <>
                 {isGeneratingCode ? (
@@ -1548,6 +1815,7 @@ export default function Performance() {
                     <button
                       className="text-sm px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800 font-medium"
                       onClick={() => {
+                        window.open('https://analytics.google.com/', '_blank');
                         setIsModalOpen(false);
                       }}
                     >
