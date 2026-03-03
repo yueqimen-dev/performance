@@ -137,6 +137,20 @@ export default function Performance() {
 
   
 
+  const handleConfirmPlatform = () => {
+    if (!sitePlatform) return;
+    if (sitePlatform === 'Custom Site') {
+      setModalTitle('Custom site integration');
+      setModalBody('Use the JF guide to register and upload your code.');
+      setModalLink('https://vxqhv8tzaua.feishu.cn/wiki/FVSOwGJG1i1wY3kqNt3ctEUhnmc');
+      setIsGeneratingCode(false);
+    } else {
+      setModalTitle(`Connect GA4 via ${sitePlatform}`);
+      setModalBody('Follow the official steps in your platform admin to connect GA4.');
+      setModalLink('https://support.google.com/analytics/answer/9304153?hl=en');
+      setIsGeneratingCode(false);
+    }
+  };
   
   
   // Debug State
@@ -532,15 +546,10 @@ export default function Performance() {
                       </button>
                       <button
                         onClick={() => {
-                          if (isGA4Connected) {
-                            setModalTitle('Change GA4 account');
-                            setModalBody('Do you want to change the linked GA4 account?');
-                          } else {
-                            setModalTitle('Connect GA4');
-                            setModalBody('Do you have a GA4 account?');
-                          }
+                          setModalTitle('Connect GA4');
+                          setModalBody('Please choose your site platform');
                           setModalLink(null);
-                          setGa4Selection(null);
+                          setGa4Selection('no');
                           setSitePlatform('');
                           setIsGeneratingCode(false);
                           setIsModalOpen(true);
@@ -1794,6 +1803,39 @@ export default function Performance() {
                 >
                   I don’t have GA4
                 </button>
+              </div>
+            )}
+            {ga4Selection === 'no' && (
+              <div className="space-y-3 mb-4">
+                <div>
+                  <h4 className="text-sm font-bold text-gray-900 mb-1">Choose your site platform</h4>
+                  <p className="text-xs text-gray-500">We’ll provide the appropriate connection steps</p>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {['Shopify', 'WordPress', 'Webflow', 'Wix', 'Squarespace', 'Custom Site'].map((name) => (
+                    <label key={name} className="cursor-pointer">
+                      <input
+                        type="radio"
+                        name="sitePlatform"
+                        value={name}
+                        className="sr-only peer"
+                        onChange={() => setSitePlatform(name)}
+                      />
+                      <div className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 peer-checked:border-black peer-checked:bg-black/5">
+                        {name}
+                      </div>
+                    </label>
+                  ))}
+                </div>
+                <div className="flex justify-end">
+                  <button
+                    className="px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800 font-medium disabled:opacity-50"
+                    disabled={!sitePlatform}
+                    onClick={handleConfirmPlatform}
+                  >
+                    Confirm Platform
+                  </button>
+                </div>
               </div>
             )}
             
