@@ -64,7 +64,7 @@ interface KeywordGroup {
 }
 
 export default function Performance() {
-  const { role, isGA4Connected } = useUserStore();
+  const { role, isGA4Connected, setGA4Connected } = useUserStore();
   const { setChatOpen, setSidebarCollapsed, setInitialMessage } = useLayoutStore();
   const [activeTab, setActiveTab] = useState<TabId>('data');
   const [timeRange, setTimeRange] = useState('7d');
@@ -129,55 +129,15 @@ export default function Performance() {
   const [modalBody, setModalBody] = useState('');
   const [modalLink, setModalLink] = useState<string | null>(null);
   const [isGeneratingCode, setIsGeneratingCode] = useState(false);
-  const [codeContent, setCodeContent] = useState('');
+  
   // removed toast UI; keep no local toast state
   const [gaDebugOpen, setGaDebugOpen] = useState(false);
   const [gaDebugStatus, setGaDebugStatus] = useState<'not_connected' | 'needs_change' | 'linking'>('not_connected');
-  const [contactOpen, setContactOpen] = useState(false);
+  
 
-  const handleConfirmPlatform = () => {
-    if (!sitePlatform) return;
-    if (sitePlatform === 'Custom Site') {
-      setModalTitle('Custom site integration');
-      setModalBody("We're generating your GA4 code file. Please keep this window open. When ready, download or copy the code and paste it into your site. If generation is still in progress, you’ll see a spinner.");
-      setModalLink('https://developers.google.com/analytics/devguides/collection/ga4');
-      setIsGeneratingCode(true);
-      setIsModalOpen(true);
-      setTimeout(() => {
-        setCodeContent(`(function(w,d,s,i){w.dataLayer=w.dataLayer||[];function g(){dataLayer.push(arguments)}g('js',new Date());g('config',i);var f=d.createElement(s);f.async=1;f.src='https://www.googletagmanager.com/gtag/js?id='+i;var h=d.getElementsByTagName(s)[0];h.parentNode.insertBefore(f,h);})(window,document,'script','G-XXXXXXXX');`);
-        setIsGeneratingCode(false);
-      }, 3000);
-    } else {
-      setModalTitle('Connect GA4 via your platform');
-      setModalBody('Please follow the official guide to connect Google Analytics 4 from your website platform admin.');
-      setModalLink('https://support.google.com/analytics/answer/9304153?hl=en');
-      setIsGeneratingCode(false);
-      setCodeContent('');
-      setIsModalOpen(true);
-    }
-  };
+  
 
-  const handleCopyCode = async () => {
-    if (!codeContent) return;
-    try {
-      await navigator.clipboard.writeText(codeContent);
-    } catch {
-      // ignore
-    }
-  };
-
-  const handleDownloadCode = () => {
-    if (!codeContent) return;
-    const blob = new Blob([codeContent], { type: 'text/javascript;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'workfxai-ga4.js';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-  };
+  
   
   // Debug State
   const [hasKeywords, setHasKeywords] = useState(true);
@@ -499,6 +459,27 @@ export default function Performance() {
                   </div>
                 </div>
 
+                <div className="mt-1 flex items-center gap-1">
+                  <button
+                    onClick={() => setGA4Connected(true)}
+                    className={clsx(
+                      "px-2 py-0.5 rounded text-[10px] font-bold transition-colors border border-gray-200",
+                      isGA4Connected ? "bg-green-50 text-green-700" : "bg-white text-gray-500 hover:text-gray-700"
+                    )}
+                  >
+                    Connected
+                  </button>
+                  <button
+                    onClick={() => setGA4Connected(false)}
+                    className={clsx(
+                      "px-2 py-0.5 rounded text-[10px] font-bold transition-colors border border-gray-200",
+                      !isGA4Connected ? "bg-red-50 text-red-700" : "bg-white text-gray-500 hover:text-gray-700"
+                    )}
+                  >
+                    Unconnected
+                  </button>
+                </div>
+
                 <div className="grid grid-cols-3 gap-4">
                   <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
                     <div className="flex items-center gap-2 mb-2">
@@ -548,6 +529,26 @@ export default function Performance() {
                         title="Choose date range"
                       >
                         {getTimeRangeLabel()}
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (isGA4Connected) {
+                            setModalTitle('Change GA4 account');
+                            setModalBody('Do you want to change the linked GA4 account?');
+                          } else {
+                            setModalTitle('Connect GA4');
+                            setModalBody('Do you have a GA4 account?');
+                          }
+                          setModalLink(null);
+                          setGa4Selection(null);
+                          setSitePlatform('');
+                          setIsGeneratingCode(false);
+                          setIsModalOpen(true);
+                        }}
+                        className="p-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50"
+                        title="Connect GA4"
+                      >
+                        <Settings size={16} />
                       </button>
                       {timeMenuOpen && (
                         <div className="absolute top-full right-0 mt-2 w-64 bg-white border border-gray-200 rounded-xl shadow-lg z-30">
@@ -643,7 +644,6 @@ export default function Performance() {
                           setModalLink(null);
                           setGa4Selection(null);
                           setSitePlatform('');
-                          setCodeContent('');
                           setIsGeneratingCode(false);
                           setIsModalOpen(true);
                         }}
@@ -924,23 +924,7 @@ export default function Performance() {
                    </div>
                    Query Attribution
                  </h4>
-                 <div className="relative flex items-center gap-2">
-                   <select
-                     value={timeRange}
-                     onChange={(e) => setTimeRange(e.target.value)}
-                     className="text-xs font-medium border border-gray-200 bg-gray-50 rounded-lg px-3 py-1.5 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 text-gray-700 transition-all cursor-pointer hover:bg-white hover:shadow-sm"
-                   >
-                     <option value="7d">Last 7 Days</option>
-                     <option value="30d">Last 30 Days</option>
-                   </select>
-                   <button
-                     onClick={() => setVisConfigOpen((v) => !v)}
-                     className="p-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50"
-                     title="Visibility Settings"
-                   >
-                     <Settings size={16} />
-                   </button>
-                 </div>
+                <div className="relative flex items-center gap-2"></div>
                </div>
                <div className="flex justify-between items-center mb-2">
                  <div className="text-xs text-gray-400">Last updated: {lastUpdated}</div>
@@ -1702,39 +1686,7 @@ export default function Performance() {
                     </div>
                   </div>
 
-                  {ga4Selection === 'no' && (
-                    <div className="space-y-3">
-                      <div>
-                        <h4 className="text-sm font-bold text-gray-900 mb-1">Choose your site platform</h4>
-                        <p className="text-xs text-gray-500">We’ll provide the appropriate connection steps</p>
-                      </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                        {['Shopify', 'WordPress', 'Webflow', 'Wix', 'Squarespace', 'Custom Site'].map((name) => (
-                          <label key={name} className="cursor-pointer">
-                            <input
-                              type="radio"
-                              name="sitePlatform"
-                              value={name}
-                              className="sr-only peer"
-                              onChange={() => setSitePlatform(name)}
-                            />
-                            <div className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 peer-checked:border-black peer-checked:bg-black/5">
-                              {name}
-                            </div>
-                          </label>
-                        ))}
-                      </div>
-                      <div className="flex justify-end">
-                        <button
-                          className="px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800 font-medium disabled:opacity-50"
-                          disabled={!sitePlatform}
-                          onClick={handleConfirmPlatform}
-                        >
-                          Confirm Platform
-                        </button>
-                      </div>
-                    </div>
-                  )}
+                  
                 </div>
               </div>
 
@@ -1813,7 +1765,15 @@ export default function Performance() {
                 <X size={16} />
               </button>
             </div>
-            <p className="text-sm text-gray-600 mb-4">{modalBody}</p>
+            <p className="text-sm text-gray-600 mb-2">{modalBody}</p>
+            <a
+              href="https://vxqhv8tzaua.feishu.cn/wiki/FVSOwGJG1i1wY3kqNt3ctEUhnmc"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline mb-4"
+            >
+              <ExternalLink size={12} /> View full guide
+            </a>
             {ga4Selection === null && (
               <div className="flex items-center gap-2 mb-4">
                 <button
@@ -1836,39 +1796,7 @@ export default function Performance() {
                 </button>
               </div>
             )}
-            {ga4Selection === 'no' && (
-              <div className="space-y-3 mb-4">
-                <div>
-                  <h4 className="text-sm font-bold text-gray-900 mb-1">Choose your site platform</h4>
-                  <p className="text-xs text-gray-500">We’ll provide the appropriate connection steps</p>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {['Shopify', 'WordPress', 'Webflow', 'Wix', 'Squarespace', 'Custom Site'].map((name) => (
-                    <label key={name} className="cursor-pointer">
-                      <input
-                        type="radio"
-                        name="sitePlatformModal"
-                        value={name}
-                        className="sr-only peer"
-                        onChange={() => setSitePlatform(name)}
-                      />
-                      <div className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 peer-checked:border-black peer-checked:bg-black/5">
-                        {name}
-                      </div>
-                    </label>
-                  ))}
-                </div>
-                <div className="flex justify-end">
-                  <button
-                    className="px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800 font-medium disabled:opacity-50"
-                    disabled={!sitePlatform}
-                    onClick={handleConfirmPlatform}
-                  >
-                    Confirm Platform
-                  </button>
-                </div>
-              </div>
-            )}
+            
             {sitePlatform === 'Custom Site' ? (
               <>
                 {isGeneratingCode ? (
@@ -1878,40 +1806,32 @@ export default function Performance() {
                   </div>
                 ) : (
                   <>
-                    <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 mb-3">
-                      <pre className="overflow-x-auto text-xs text-gray-800">
-                        <code>{codeContent}</code>
-                      </pre>
-                    </div>
-                    <div className="flex items-center gap-2 mb-3">
-                      <button onClick={handleCopyCode} className="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50">Copy code</button>
-                      <button onClick={handleDownloadCode} className="px-3 py-2 text-sm bg-black text-white rounded-md hover:bg-gray-800">Download file</button>
-                      <button onClick={() => setContactOpen((v) => !v)} className="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 inline-flex items-center gap-1">
-                        Contact us
-                      </button>
-                    </div>
-                    {contactOpen && (
-                      <div className="mb-3 border border-gray-200 rounded-lg p-3 bg-white">
-                        <div className="text-sm font-medium text-gray-900 mb-1">Need help?</div>
-                        <div className="text-sm text-gray-600 mb-2">Reach our team and we’ll walk you through the steps.</div>
-                        <div className="flex items-center gap-2">
-                          <a href="mailto:support@workfx.ai" className="text-sm px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50">Email support</a>
-                          <a href="https://support.google.com/analytics/answer/9304153?hl=en" target="_blank" rel="noreferrer" className="text-sm px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 inline-flex items-center gap-1">
-                            <ExternalLink size={14} /> Docs
-                          </a>
+                    <div className="rounded-lg border border-gray-200 bg-white p-4 mb-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="p-1.5 rounded-lg bg-blue-100 text-blue-600">
+                          <ExternalLink size={14} />
                         </div>
+                        <div className="text-sm font-bold text-gray-900">JF Setup Guide</div>
                       </div>
-                    )}
-                    {modalLink && (
-                      <a
-                        href={modalLink}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-2 text-sm font-medium px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
-                      >
-                        <ExternalLink size={14} /> Read guide
-                      </a>
-                    )}
+                      <div className="text-xs text-gray-500 mb-2">Quick steps to register JF and upload your code</div>
+                      <ol className="list-decimal pl-4 text-sm text-gray-700 space-y-1">
+                        <li>Open the JF portal and create an account.</li>
+                        <li>Verify your email and sign in.</li>
+                        <li>Create a new project for your site/app.</li>
+                        <li>Upload your code archive (.zip) or connect your repository.</li>
+                        <li>Wait for processing to complete and confirm deployment.</li>
+                      </ol>
+                      <div className="mt-3 flex items-center gap-2">
+                        <a
+                          href={modalLink ?? '#'}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-sm px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 inline-flex items-center gap-1"
+                        >
+                          <ExternalLink size={14} /> Get JF Docs
+                        </a>
+                      </div>
+                    </div>
                   </>
                 )}
               </>
