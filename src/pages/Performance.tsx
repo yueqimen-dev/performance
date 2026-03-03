@@ -64,10 +64,32 @@ interface KeywordGroup {
 }
 
 export default function Performance() {
-  const { role, isGA4Connected, setGA4Connected } = useUserStore();
+  const { role, isGA4Connected } = useUserStore();
   const { setChatOpen, setSidebarCollapsed, setInitialMessage } = useLayoutStore();
   const [activeTab, setActiveTab] = useState<TabId>('data');
   const [timeRange, setTimeRange] = useState('7d');
+  const [timeMenuOpen, setTimeMenuOpen] = useState(false);
+  const [isCustomRange, setIsCustomRange] = useState(false);
+  const [customStartDate, setCustomStartDate] = useState<string>('');
+  const [customEndDate, setCustomEndDate] = useState<string>('');
+  const getTimeRangeLabel = () => {
+    if (isCustomRange && customStartDate && customEndDate) {
+      return `${customStartDate} — ${customEndDate}`;
+    }
+    switch (timeRange) {
+      case 'today': return 'Today';
+      case 'yesterday': return 'Yesterday';
+      case 'this_week_to_today': return 'This week (Sun to today)';
+      case 'last_week': return 'Last week (Sun to Sat)';
+      case '7d': return 'Last 7 days';
+      case '28d': return 'Last 28 days';
+      case '30d': return 'Last 30 days';
+      case 'this_month': return 'This month';
+      case 'last_month': return 'Last month';
+      case '90d': return 'Last 90 days';
+      default: return 'Last 7 days';
+    }
+  };
   const [isVisibilityConfigured, setIsVisibilityConfigured] = useState(false);
   const isVisibilityActive = role === 'active' || isVisibilityConfigured;
   const [visConfigOpen, setVisConfigOpen] = useState(false);
@@ -455,7 +477,7 @@ export default function Performance() {
       )}
 
       {/* Main Content Area - Darker Background for Contrast */}
-      <div className="bg-slate-50/50 rounded-3xl border border-gray-200 shadow-sm p-6 relative min-h-[500px]">
+      <>
         {/* Overlay for Free/Pending states */}
         {role === 'free' && renderContent()}
 
@@ -466,34 +488,14 @@ export default function Performance() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
               {/* Left Column: Traffic Analytics */}
               <div className="space-y-6">
-                <div className="flex items-center gap-4">
-                  <h3 className="font-bold text-gray-900 text-lg flex items-center gap-2">
-                    <div className="bg-blue-100 p-1.5 rounded-lg text-blue-600">
-                      <BarChart2 size={20} />
+                <div className="flex items-start gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <div className="bg-blue-100 p-1.5 rounded-lg text-blue-600">
+                        <BarChart2 size={20} />
+                      </div>
+                      <h3 className="font-bold text-gray-900 text-lg">Traffic Sources</h3>
                     </div>
-                    Traffic Sources
-                  </h3>
-                  
-                  {/* Debug: Toggle GA4 Connection */}
-                  <div className="flex items-center gap-2 bg-white p-1 rounded-lg border border-gray-200 shadow-sm">
-                    <button 
-                      onClick={() => setGA4Connected(true)}
-                      className={clsx(
-                        "px-2 py-0.5 rounded text-[10px] font-bold transition-colors",
-                        isGA4Connected ? "bg-green-100 text-green-700 shadow-sm" : "text-gray-400 hover:text-gray-600"
-                      )}
-                    >
-                      Connected
-                    </button>
-                    <button 
-                      onClick={() => setGA4Connected(false)}
-                      className={clsx(
-                        "px-2 py-0.5 rounded text-[10px] font-bold transition-colors",
-                        !isGA4Connected ? "bg-red-100 text-red-700 shadow-sm" : "text-gray-400 hover:text-gray-600"
-                      )}
-                    >
-                      Unconnected
-                    </button>
                   </div>
                 </div>
 
@@ -528,25 +530,7 @@ export default function Performance() {
                   </div>
                 </div>
 
-                <div className="flex justify-between items-center mt-6 mb-4">
-                  <h4 className="font-bold text-gray-900 text-sm">Traffic Trend</h4>
-                  <div className="flex items-center gap-1 bg-gray-100/50 border border-gray-200 rounded-lg p-1">
-                    {['24h', '3d', '7d'].map((range) => (
-                      <button
-                        key={range}
-                        onClick={() => setTimeRange(range)}
-                        className={clsx(
-                          "px-3 py-1 rounded-md text-xs font-bold transition-all",
-                          timeRange === range 
-                            ? "bg-white text-gray-900 shadow-sm ring-1 ring-black/5" 
-                            : "text-gray-500 hover:text-gray-900 hover:bg-gray-200/50"
-                        )}
-                      >
-                        {range.toUpperCase()}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                
 
                 <div className="h-[300px] w-full bg-white border border-gray-200 rounded-2xl p-6 shadow-sm relative overflow-hidden">
                   <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-green-500 to-purple-500 opacity-20"></div>
@@ -558,18 +542,104 @@ export default function Performance() {
                       Traffic Sources
                     </h4>
                     <div className="relative flex items-center gap-2">
-                      <select
-                        value={timeRange}
-                        onChange={(e) => setTimeRange(e.target.value)}
+                      <button
+                        onClick={() => setTimeMenuOpen((v) => !v)}
                         className="text-xs font-medium border border-gray-200 bg-gray-50 rounded-lg px-3 py-1.5 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 text-gray-700 transition-all cursor-pointer hover:bg-white hover:shadow-sm"
+                        title="Choose date range"
                       >
-                        <option value="7d">Last 7 Days</option>
-                        <option value="30d">Last 30 Days</option>
-                      </select>
+                        {getTimeRangeLabel()}
+                      </button>
+                      {timeMenuOpen && (
+                        <div className="absolute top-full right-0 mt-2 w-64 bg-white border border-gray-200 rounded-xl shadow-lg z-30">
+                          <div className="py-2 max-h-64 overflow-y-auto">
+                            <button
+                              className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                              onClick={() => {
+                                setIsCustomRange(true);
+                              }}
+                            >
+                              Custom
+                            </button>
+                            <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => { setIsCustomRange(false); setTimeRange('today'); setTimeMenuOpen(false); }}>
+                              Today
+                            </button>
+                            <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => { setIsCustomRange(false); setTimeRange('yesterday'); setTimeMenuOpen(false); }}>
+                              Yesterday
+                            </button>
+                            <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => { setIsCustomRange(false); setTimeRange('this_week_to_today'); setTimeMenuOpen(false); }}>
+                              This week (Sun to today)
+                            </button>
+                            <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => { setIsCustomRange(false); setTimeRange('7d'); setTimeMenuOpen(false); }}>
+                              Last 7 days
+                            </button>
+                            <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => { setIsCustomRange(false); setTimeRange('last_week'); setTimeMenuOpen(false); }}>
+                              Last week (Sun to Sat)
+                            </button>
+                            <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => { setIsCustomRange(false); setTimeRange('28d'); setTimeMenuOpen(false); }}>
+                              Last 28 days
+                            </button>
+                            <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => { setIsCustomRange(false); setTimeRange('30d'); setTimeMenuOpen(false); }}>
+                              Last 30 days
+                            </button>
+                            <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => { setIsCustomRange(false); setTimeRange('this_month'); setTimeMenuOpen(false); }}>
+                              This month
+                            </button>
+                            <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => { setIsCustomRange(false); setTimeRange('last_month'); setTimeMenuOpen(false); }}>
+                              Last month
+                            </button>
+                            <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => { setIsCustomRange(false); setTimeRange('90d'); setTimeMenuOpen(false); }}>
+                              Last 90 days
+                            </button>
+                          </div>
+                          {isCustomRange && (
+                            <div className="border-t border-gray-200 p-3 space-y-2">
+                              <div className="text-[11px] text-gray-500 font-medium">Start date — End date</div>
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="date"
+                                  value={customStartDate}
+                                  onChange={(e) => setCustomStartDate(e.target.value)}
+                                  className="flex-1 border border-gray-200 rounded-lg px-2 py-1 text-sm"
+                                />
+                                <span className="text-gray-400">—</span>
+                                <input
+                                  type="date"
+                                  value={customEndDate}
+                                  onChange={(e) => setCustomEndDate(e.target.value)}
+                                  className="flex-1 border border-gray-200 rounded-lg px-2 py-1 text-sm"
+                                />
+                              </div>
+                              <div className="flex justify-end">
+                                <button
+                                  disabled={!customStartDate || !customEndDate}
+                                  className={clsx(
+                                    "px-3 py-1.5 rounded-lg text-sm font-bold",
+                                    customStartDate && customEndDate ? "bg-primary text-white" : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                  )}
+                                  onClick={() => {
+                                    if (customStartDate && customEndDate) {
+                                      setIsCustomRange(true);
+                                      setTimeRange('custom');
+                                      setTimeMenuOpen(false);
+                                    }
+                                  }}
+                                >
+                                  Apply
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
                       <button
                         onClick={() => {
-                          setModalTitle('Connect GA4');
-                          setModalBody('Do you have a GA4 account?');
+                          if (isGA4Connected) {
+                            setModalTitle('Change GA4 account');
+                            setModalBody('Do you want to change the linked GA4 account?');
+                          } else {
+                            setModalTitle('Connect GA4');
+                            setModalBody('Do you have a GA4 account?');
+                          }
                           setModalLink(null);
                           setGa4Selection(null);
                           setSitePlatform('');
@@ -584,25 +654,7 @@ export default function Performance() {
                       </button>
                     </div>
                   </div>
-                  {!isGA4Connected && (
-                    <div className="absolute inset-0 bg-white/70 backdrop-blur-sm flex items-center justify-center z-20">
-                      <button
-                        onClick={() => {
-                          setModalTitle('Connect GA4');
-                          setModalBody('Do you have a GA4 account?');
-                          setModalLink(null);
-                          setGa4Selection(null);
-                          setSitePlatform('');
-                          setCodeContent('');
-                          setIsGeneratingCode(false);
-                          setIsModalOpen(true);
-                        }}
-                        className="px-5 py-2.5 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg active:scale-95 flex items-center gap-2"
-                      >
-                        <Settings size={16} /> Connect GA4
-                      </button>
-                    </div>
-                  )}
+                  
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
@@ -858,19 +910,10 @@ export default function Performance() {
             </div>
           </div>
           
-          <div className="mt-8 space-y-8">
-            
-
-            <div className="flex justify-end pt-2">
-              <button className="bg-primary text-white px-8 py-3 rounded-xl font-bold hover:bg-primary/90 transition-all flex items-center gap-2 shadow-lg shadow-primary/20 active:scale-95">
-                <Save size={18} />
-                Save Settings
-              </button>
-            </div>
-          </div>
+          <div className="mt-8 space-y-8"></div>
           </>
         )}
-      </div>
+      </>
 
         {activeTab === 'query' && (
            <div className={clsx((role === 'free' || role === 'pending') && "filter blur-sm select-none pointer-events-none")}>
