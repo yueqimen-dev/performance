@@ -54,6 +54,7 @@ interface Query {
   id: string;
   text: string;
   platforms: Record<string, PlatformStatus>;
+  positions?: Record<PlatformId, number | null>;
 }
 
 interface KeywordGroup {
@@ -88,6 +89,7 @@ export default function Performance() {
   }, [visConfigOpen, visFrequency, visPlatforms]);
   const [expandedKeywords, setExpandedKeywords] = useState<string[]>(['k1', 'k2']);
   const [selectedCell, setSelectedCell] = useState<{keyword: string, query: string, platform: string, status: string} | null>(null);
+  const lastUpdated = new Date().toLocaleString('en-US', { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit' });
 
   // Keyword Management State
   const [keywords, setKeywords] = useState<{id: string, term: string, queries: string[]}[]>([
@@ -158,7 +160,7 @@ export default function Performance() {
   // Debug State
   const [hasKeywords, setHasKeywords] = useState(true);
   const [setupKeywords, setSetupKeywords] = useState<{id: string, term: string}[]>([]); // New Setup Mode state
-  const [activeMetric, setActiveMetric] = useState<'visibility' | 'sentiment'>('visibility');
+  const [activeMetric, setActiveMetric] = useState<'visibility' | 'sentiment' | 'position'>('visibility');
   const [chatInput, setChatInput] = useState('');
   const [showChatSuggestions, setShowChatSuggestions] = useState(false);
 
@@ -168,25 +170,25 @@ export default function Performance() {
       id: 'k1',
       keyword: 'Best AI Dashboard',
       queries: [
-        { id: 'q1-1', text: 'What is the best AI analytics dashboard?', platforms: { ChatGPT: 'mentioned', Claude: 'mentioned', Perplexity: 'negative', Gemini: 'not_mentioned', SearchGPT: 'mentioned' } },
-        { id: 'q1-2', text: 'Top tools for tracking AI traffic', platforms: { ChatGPT: 'mentioned', Claude: 'not_mentioned', Perplexity: 'mentioned', Gemini: 'not_mentioned', SearchGPT: 'not_mentioned' } },
-        { id: 'q1-3', text: 'WorkfxAI reviews and features', platforms: { ChatGPT: 'negative', Claude: 'mentioned', Perplexity: 'mentioned', Gemini: 'mentioned', SearchGPT: 'mentioned' } },
+        { id: 'q1-1', text: 'What is the best AI analytics dashboard?', platforms: { ChatGPT: 'mentioned', Claude: 'mentioned', Perplexity: 'negative', Gemini: 'not_mentioned', SearchGPT: 'mentioned' }, positions: { ChatGPT: 2, Claude: 3, Perplexity: 4, Gemini: null, SearchGPT: 2 } },
+        { id: 'q1-2', text: 'Top tools for tracking AI traffic', platforms: { ChatGPT: 'mentioned', Claude: 'not_mentioned', Perplexity: 'mentioned', Gemini: 'not_mentioned', SearchGPT: 'not_mentioned' }, positions: { ChatGPT: 3, Claude: null, Perplexity: 2, Gemini: null, SearchGPT: null } },
+        { id: 'q1-3', text: 'WorkfxAI reviews and features', platforms: { ChatGPT: 'negative', Claude: 'mentioned', Perplexity: 'mentioned', Gemini: 'mentioned', SearchGPT: 'mentioned' }, positions: { ChatGPT: 5, Claude: 4, Perplexity: 3, Gemini: 2, SearchGPT: 2 } },
       ]
     },
     {
       id: 'k2',
       keyword: 'AI Traffic Analytics',
       queries: [
-        { id: 'q2-1', text: 'How to track traffic from ChatGPT?', platforms: { ChatGPT: 'mentioned', Claude: 'mentioned', Perplexity: 'mentioned', Gemini: 'mentioned', SearchGPT: 'mentioned' } },
-        { id: 'q2-2', text: 'Is WorkfxAI good for SEO?', platforms: { ChatGPT: 'not_mentioned', Claude: 'not_mentioned', Perplexity: 'mentioned', Gemini: 'not_mentioned', SearchGPT: 'not_mentioned' } },
+        { id: 'q2-1', text: 'How to track traffic from ChatGPT?', platforms: { ChatGPT: 'mentioned', Claude: 'mentioned', Perplexity: 'mentioned', Gemini: 'mentioned', SearchGPT: 'mentioned' }, positions: { ChatGPT: 1, Claude: 2, Perplexity: 1, Gemini: 3, SearchGPT: 2 } },
+        { id: 'q2-2', text: 'Is WorkfxAI good for SEO?', platforms: { ChatGPT: 'not_mentioned', Claude: 'not_mentioned', Perplexity: 'mentioned', Gemini: 'not_mentioned', SearchGPT: 'not_mentioned' }, positions: { ChatGPT: null, Claude: null, Perplexity: 3, Gemini: null, SearchGPT: null } },
       ]
     },
     {
       id: 'k3',
       keyword: 'Brand Reputation Monitoring',
       queries: [
-        { id: 'q3-1', text: 'Best brand monitoring tools 2024', platforms: { ChatGPT: 'mentioned', Claude: 'mentioned', Perplexity: 'not_mentioned', Gemini: 'mentioned', SearchGPT: 'mentioned' } },
-        { id: 'q3-2', text: 'WorkfxAI vs Competitors', platforms: { ChatGPT: 'mentioned', Claude: 'negative', Perplexity: 'mentioned', Gemini: 'not_mentioned', SearchGPT: 'mentioned' } },
+        { id: 'q3-1', text: 'Best brand monitoring tools 2024', platforms: { ChatGPT: 'mentioned', Claude: 'mentioned', Perplexity: 'not_mentioned', Gemini: 'mentioned', SearchGPT: 'mentioned' }, positions: { ChatGPT: 2, Claude: 3, Perplexity: null, Gemini: 2, SearchGPT: 2 } },
+        { id: 'q3-2', text: 'WorkfxAI vs Competitors', platforms: { ChatGPT: 'mentioned', Claude: 'negative', Perplexity: 'mentioned', Gemini: 'not_mentioned', SearchGPT: 'mentioned' }, positions: { ChatGPT: 3, Claude: 4, Perplexity: 2, Gemini: null, SearchGPT: 3 } },
       ]
     },
   ];
@@ -548,6 +550,40 @@ export default function Performance() {
 
                 <div className="h-[300px] w-full bg-white border border-gray-200 rounded-2xl p-6 shadow-sm relative overflow-hidden">
                   <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-green-500 to-purple-500 opacity-20"></div>
+                  <div className="flex items-center justify-between mb-6 relative z-10">
+                    <h4 className="font-bold text-gray-900 flex items-center gap-2">
+                      <div className="p-1.5 rounded-lg bg-blue-100 text-blue-600">
+                        <BarChart2 size={16} />
+                      </div>
+                      Traffic Sources
+                    </h4>
+                    <div className="relative flex items-center gap-2">
+                      <select
+                        value={timeRange}
+                        onChange={(e) => setTimeRange(e.target.value)}
+                        className="text-xs font-medium border border-gray-200 bg-gray-50 rounded-lg px-3 py-1.5 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 text-gray-700 transition-all cursor-pointer hover:bg-white hover:shadow-sm"
+                      >
+                        <option value="7d">Last 7 Days</option>
+                        <option value="30d">Last 30 Days</option>
+                      </select>
+                      <button
+                        onClick={() => {
+                          setModalTitle('Connect GA4');
+                          setModalBody('Do you have a GA4 account?');
+                          setModalLink(null);
+                          setGa4Selection(null);
+                          setSitePlatform('');
+                          setCodeContent('');
+                          setIsGeneratingCode(false);
+                          setIsModalOpen(true);
+                        }}
+                        className="p-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50"
+                        title="Connect GA4"
+                      >
+                        <Settings size={16} />
+                      </button>
+                    </div>
+                  </div>
                   {!isGA4Connected && (
                     <div className="absolute inset-0 bg-white/70 backdrop-blur-sm flex items-center justify-center z-20">
                       <button
@@ -593,8 +629,7 @@ export default function Performance() {
                   AI Visibility
                 </h3>
                 
-                {/* AI Visibility Score Card - SaaS Style */}
-                <div className="grid grid-cols-2 gap-4 h-[140px]">
+                <div className="grid grid-cols-3 gap-4 h-[140px]">
                   <div 
                     onClick={() => setActiveMetric('visibility')}
                     className={clsx(
@@ -628,7 +663,6 @@ export default function Performance() {
                     <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-orange-50 rounded-full blur-2xl opacity-50 group-hover:opacity-100 transition-opacity"></div>
                   </div>
 
-                  {/* Sentiment Score Card - SaaS Style */}
                   <div 
                     onClick={() => setActiveMetric('sentiment')}
                     className={clsx(
@@ -661,16 +695,46 @@ export default function Performance() {
                     {/* Decor */}
                     <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-indigo-50 rounded-full blur-2xl opacity-50 group-hover:opacity-100 transition-opacity"></div>
                   </div>
+                  
+                  <div 
+                    onClick={() => setActiveMetric('position')}
+                    className={clsx(
+                      "p-5 rounded-2xl border relative overflow-hidden group flex flex-col justify-between cursor-pointer transition-all duration-300",
+                      activeMetric === 'position' 
+                        ? "bg-white border-purple-200 shadow-md ring-1 ring-purple-100" 
+                        : "bg-white border-gray-100 shadow-sm hover:shadow-md hover:border-purple-100"
+                    )}
+                  >
+                    <div className="flex justify-between items-start z-10">
+                       <div className="flex items-center gap-2">
+                         <div className={clsx("p-2 rounded-lg transition-colors", activeMetric === 'position' ? "bg-purple-50 text-purple-600" : "bg-gray-50 text-gray-400 group-hover:bg-purple-50 group-hover:text-purple-600")}>
+                           <Target size={18} />
+                         </div>
+                         <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Position</span>
+                       </div>
+                       {activeMetric === 'position' && <div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></div>}
+                    </div>
+                    <div className="relative z-10 mt-2">
+                      <div className="text-3xl font-bold text-gray-900 tracking-tight">#2.8</div>
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="bg-purple-50 text-purple-700 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 border border-purple-100">
+                          Average Rank
+                        </span>
+                        <span className="text-[10px] text-gray-400">lower is better</span>
+                      </div>
+                    </div>
+                    <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-purple-50 rounded-full blur-2xl opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                  </div>
                 </div>
 
                 {/* Trend Chart Area - SaaS Style */}
-                <div className="h-[340px] bg-white border border-gray-200 rounded-2xl p-6 shadow-sm animate-in fade-in duration-300 relative overflow-hidden">
+                <div className="h-[340px] bg-white border border-gray-200 rounded-2xl p-6 shadow-sm animate-in fade-in duration-300 relative overflow-visible">
                   <div className="flex items-center justify-between mb-6 relative z-10">
                     <h4 className="font-bold text-gray-900 flex items-center gap-2">
                       <div className={clsx("p-1.5 rounded-lg", activeMetric === 'visibility' ? "bg-orange-100 text-orange-600" : "bg-indigo-100 text-indigo-600")}>
                         {activeMetric === 'visibility' ? <TrendingUp size={16} /> : <MessageSquare size={16} />}
                       </div>
-                      {activeMetric === 'visibility' ? 'Visibility Trend' : 'Sentiment Trend'}
+                      {activeMetric === 'visibility' ? 'Visibility Trend' : activeMetric === 'sentiment' ? 'Sentiment Trend' : 'Position Trend'}
                     </h4>
                     <div className="relative flex items-center gap-2">
                       <select className="text-xs font-medium border border-gray-200 bg-gray-50 rounded-lg px-3 py-1.5 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 text-gray-700 transition-all cursor-pointer hover:bg-white hover:shadow-sm">
@@ -689,34 +753,64 @@ export default function Performance() {
                   </div>
                   
                 <div className="h-[260px] w-full relative z-10">
-                  {!isVisibilityActive && !visConfigOpen && (
+                  {activeMetric === 'visibility' && !isVisibilityActive && !visConfigOpen && (
                     <div className="absolute inset-0 bg-white/70 backdrop-blur-sm flex items-center justify-center z-20">
                       <button className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 shadow-lg active:scale-95 flex items-center gap-2">
                         <Settings size={16} /> Configure AI Visibility
                       </button>
                     </div>
                   )}
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart 
-                        data={activeMetric === 'visibility' ? [
-                          { date: 'Mon', chatgpt: 45, claude: 30, perplexity: 55 },
-                          { date: 'Tue', chatgpt: 50, claude: 35, perplexity: 52 },
-                          { date: 'Wed', chatgpt: 55, claude: 40, perplexity: 58 },
-                          { date: 'Thu', chatgpt: 60, claude: 45, perplexity: 62 },
-                          { date: 'Fri', chatgpt: 65, claude: 42, perplexity: 65 },
-                          { date: 'Sat', chatgpt: 70, claude: 48, perplexity: 70 },
-                          { date: 'Sun', chatgpt: 72, claude: 50, perplexity: 75 },
-                        ] : [
-                          { date: 'Mon', positive: 70, neutral: 20, negative: 10 },
-                          { date: 'Tue', positive: 72, neutral: 18, negative: 10 },
-                          { date: 'Wed', positive: 68, neutral: 25, negative: 7 },
-                          { date: 'Thu', positive: 75, neutral: 20, negative: 5 },
-                          { date: 'Fri', positive: 78, neutral: 15, negative: 7 },
-                          { date: 'Sat', positive: 82, neutral: 10, negative: 8 },
-                          { date: 'Sun', positive: 85, neutral: 10, negative: 5 },
-                        ]} 
-                        margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-                      >
+                    {(() => {
+                      const baseVisibility = [
+                        { date: 'Mon', chatgpt: 45, claude: 30, perplexity: 55 },
+                        { date: 'Tue', chatgpt: 50, claude: 35, perplexity: 52 },
+                        { date: 'Wed', chatgpt: 55, claude: 40, perplexity: 58 },
+                        { date: 'Thu', chatgpt: 60, claude: 45, perplexity: 62 },
+                        { date: 'Fri', chatgpt: 65, claude: 42, perplexity: 65 },
+                        { date: 'Sat', chatgpt: null, claude: null, perplexity: null },
+                        { date: 'Sun', chatgpt: null, claude: null, perplexity: null },
+                      ];
+                      const baseSentiment = [
+                        { date: 'Mon', positive: 70, neutral: 20, negative: 10 },
+                        { date: 'Tue', positive: 72, neutral: 18, negative: 10 },
+                        { date: 'Wed', positive: 68, neutral: 25, negative: 7 },
+                        { date: 'Thu', positive: 75, neutral: 20, negative: 5 },
+                        { date: 'Fri', positive: 78, neutral: 15, negative: 7 },
+                        { date: 'Sat', positive: null, neutral: null, negative: null },
+                        { date: 'Sun', positive: null, neutral: null, negative: null },
+                      ];
+                      const basePosition = [
+                        { date: 'Mon', position: 3.2 },
+                        { date: 'Tue', position: 2.8 },
+                        { date: 'Wed', position: 3.5 },
+                        { date: 'Thu', position: 2.4 },
+                        { date: 'Fri', position: 2.1 },
+                        { date: 'Sat', position: null },
+                        { date: 'Sun', position: null },
+                      ];
+                      const chartData = activeMetric === 'visibility' ? baseVisibility : activeMetric === 'sentiment' ? baseSentiment : basePosition;
+                      const keys = activeMetric === 'visibility' ? ['chatgpt','claude','perplexity'] : activeMetric === 'sentiment' ? ['positive','neutral','negative'] : ['position'];
+                      const lastNonNullIndex = [...chartData].reverse().findIndex((d) => keys.some((k) => (d as unknown as Record<string, number | undefined>)[k] != null));
+                      const resolvedLastIndex = lastNonNullIndex === -1 ? -1 : chartData.length - 1 - lastNonNullIndex;
+                      const missingStartIndex = resolvedLastIndex >= 0 && resolvedLastIndex < chartData.length - 1 ? resolvedLastIndex + 1 : -1;
+                      const lastUpdateLabel = resolvedLastIndex >= 0 ? chartData[resolvedLastIndex].date : null;
+                      const missingLeftPct = missingStartIndex >= 0 ? (missingStartIndex / chartData.length) * 100 : 0;
+                      const missingWidthPct = missingStartIndex >= 0 ? ((chartData.length - missingStartIndex) / chartData.length) * 100 : 0;
+                      return (
+                        <>
+                          {missingStartIndex >= 0 && (
+                            <div
+                              className="absolute top-0 bottom-0 right-0 bg-gray-100/70 z-20 pointer-events-none"
+                              style={{ left: `${missingLeftPct}%`, width: `${missingWidthPct}%` }}
+                            >
+                              <div className="absolute top-2 left-2 text-[10px] text-gray-500">Not sampled</div>
+                            </div>
+                          )}
+                          <ResponsiveContainer width="100%" height="100%">
+                            <LineChart 
+                              data={chartData}
+                              margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                            >
                         <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                         <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 500 }} dy={10} />
                         <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 500 }} />
@@ -735,18 +829,29 @@ export default function Performance() {
                               <Line type="monotone" dataKey="claude" name="Claude" stroke="#d97757" strokeWidth={3} dot={false} />
                             )}
                             {visPlatforms.Perplexity && (
-                              <Line type="monotone" dataKey="perplexity" name="Perplexity" stroke="#22b8cf" strokeWidth={3} dot={false} />
+                              <Line type="monotone" dataKey="perplexity" name="Gemini" stroke="#22b8cf" strokeWidth={3} dot={false} />
                             )}
                           </>
-                        ) : (
+                        ) : activeMetric === 'sentiment' ? (
                           <>
                             <Line type="monotone" dataKey="positive" name="Positive %" stroke="#4f46e5" strokeWidth={3} dot={false} activeDot={{ r: 6, strokeWidth: 0 }} />
                             <Line type="monotone" dataKey="neutral" name="Neutral %" stroke="#9ca3af" strokeWidth={3} dot={false} />
                             <Line type="monotone" dataKey="negative" name="Negative %" stroke="#ef4444" strokeWidth={3} dot={false} />
                           </>
+                        ) : (
+                          <>
+                            <Line type="monotone" dataKey="position" name="Average Position" stroke="#8b5cf6" strokeWidth={3} dot={false} activeDot={{ r: 6, strokeWidth: 0 }} />
+                          </>
                         )}
-                      </LineChart>
-                    </ResponsiveContainer>
+                            </LineChart>
+                          </ResponsiveContainer>
+                          <div className="mt-2 text-[10px] text-gray-500">
+                            最近更新时间：{new Date().toLocaleString()}
+                            {lastUpdateLabel ? `（最后有数据：${lastUpdateLabel}）` : ''}
+                          </div>
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>
@@ -765,31 +870,79 @@ export default function Performance() {
           </div>
           </>
         )}
+      </div>
 
         {activeTab === 'query' && (
            <div className={clsx((role === 'free' || role === 'pending') && "filter blur-sm select-none pointer-events-none")}>
-             <div className="overflow-x-auto">
-               <table className="w-full text-left border-collapse">
+               <div className="flex items-center justify-between mb-4 relative z-10">
+                 <h4 className="font-bold text-gray-900 flex items-center gap-2">
+                   <div className="p-1.5 rounded-lg bg-indigo-100 text-indigo-600">
+                     <MessageSquare size={16} />
+                   </div>
+                   Query Attribution
+                 </h4>
+                 <div className="relative flex items-center gap-2">
+                   <select
+                     value={timeRange}
+                     onChange={(e) => setTimeRange(e.target.value)}
+                     className="text-xs font-medium border border-gray-200 bg-gray-50 rounded-lg px-3 py-1.5 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 text-gray-700 transition-all cursor-pointer hover:bg-white hover:shadow-sm"
+                   >
+                     <option value="7d">Last 7 Days</option>
+                     <option value="30d">Last 30 Days</option>
+                   </select>
+                   <button
+                     onClick={() => setVisConfigOpen((v) => !v)}
+                     className="p-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50"
+                     title="Visibility Settings"
+                   >
+                     <Settings size={16} />
+                   </button>
+                 </div>
+               </div>
+               <div className="flex justify-between items-center mb-2">
+                 <div className="text-xs text-gray-400">Last updated: {lastUpdated}</div>
+               </div>
+               <div className="overflow-x-auto">
+                 <table className="w-full text-left border-collapse">
                  <thead>
-                   <tr className="border-b border-gray-100">
-                     <th className="p-4 font-semibold text-gray-500 text-sm min-w-[300px]">Keyword / Query</th>
-                     <th className="p-4 font-semibold text-gray-500 text-sm text-center min-w-[140px]">Sentiment</th>
-                     <th className="p-4 font-semibold text-gray-500 text-sm text-center min-w-[220px]">AI Platforms</th>
-                     <th className="p-4 font-semibold text-gray-500 text-sm text-center min-w-[160px]">Visibility Score</th>
-                   </tr>
+                  <tr className="border-b border-gray-100">
+                    <th className="p-4 font-semibold text-gray-500 text-sm min-w-[300px]">Keyword / Query</th>
+                    <th className="p-3 font-semibold text-gray-500 text-sm text-center min-w-[180px]">AI Platforms</th>
+                    <th className="p-3 font-semibold text-gray-500 text-sm text-center min-w-[120px]">Sentiment</th>
+                    <th className="p-3 font-semibold text-gray-500 text-sm text-center min-w-[140px]">Visibility Score</th>
+                    <th className="p-3 font-semibold text-gray-500 text-sm text-center min-w-[120px]">Average Position</th>
+                  </tr>
                  </thead>
                  <tbody>
-                  {attributionData.map(group => {
-                    let gMentioned = 0;
-                    let gTotal = 0;
-                    group.queries.forEach(q => {
-                      platforms.forEach(p => {
-                        const st = q.platforms?.[p.id];
-                        gTotal++;
-                        if (st && st !== 'not_mentioned') gMentioned++;
-                      });
-                    });
-                    const groupVisibility = gTotal > 0 ? Math.round((gMentioned / gTotal) * 100) : 0;
+                 {attributionData.map(group => {
+                   let gMentioned = 0;
+                   let gNegative = 0;
+                   let gTotal = 0;
+                   let gPosSum = 0;
+                   let gPosCount = 0;
+                   group.queries.forEach(q => {
+                     platforms.forEach(p => {
+                       const st = q.platforms?.[p.id];
+                       gTotal++;
+                       if (st && st !== 'not_mentioned') {
+                         gMentioned++;
+                         const pos = q.positions?.[p.id] ?? null;
+                         if (typeof pos === 'number') {
+                           gPosSum += pos;
+                           gPosCount++;
+                         }
+                       }
+                       if (st === 'negative') gNegative++;
+                     });
+                   });
+                   const groupVisibility = gTotal > 0 ? Math.round((gMentioned / gTotal) * 100) : 0;
+                   const groupAvgPosition = gPosCount > 0 ? (gPosSum / gPosCount) : null;
+                   let groupSentiment: 'Positive' | 'Neutral' | 'Negative' = 'Neutral';
+                   if (gNegative > gMentioned) {
+                     groupSentiment = 'Negative';
+                   } else if (gMentioned > 0 && gMentioned >= gNegative) {
+                     groupSentiment = gNegative > 0 ? 'Neutral' : 'Positive';
+                   }
                     return (
                      <React.Fragment key={group.id}>
                        {/* Keyword Row */}
@@ -797,12 +950,23 @@ export default function Performance() {
                          className="bg-gray-50 hover:bg-gray-100 cursor-pointer border-b border-gray-100 transition-colors"
                          onClick={() => toggleKeyword(group.id)}
                        >
-                        <td colSpan={4} className="p-4 font-bold text-gray-800">
-                          <div className="flex items-center justify-between">
+                        <td colSpan={5} className="p-4 font-bold text-gray-800">
+                          <div className="grid grid-cols-[minmax(300px,1fr)_180px_120px_140px_120px] items-center gap-3">
                             <div className="flex items-center gap-2">
                               {expandedKeywords.includes(group.id) ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                               {group.keyword}
                               <span className="text-xs font-normal text-gray-400 ml-2">({group.queries.length} queries)</span>
+                            </div>
+                            <div></div>
+                            <div>
+                              <span className={clsx(
+                                "text-[10px] font-bold px-2 py-0.5 rounded-full border",
+                                groupSentiment === 'Positive' && "bg-green-50 text-green-700 border-green-200",
+                                groupSentiment === 'Negative' && "bg-red-50 text-red-700 border-red-200",
+                                groupSentiment === 'Neutral' && "bg-gray-50 text-gray-600 border-gray-200"
+                              )}>
+                                {groupSentiment}
+                              </span>
                             </div>
                             <div className="flex items-center gap-2">
                               <span className="text-xs font-bold text-gray-700">{groupVisibility}%</span>
@@ -816,6 +980,9 @@ export default function Performance() {
                                   style={{ width: `${groupVisibility}%` }}
                                 ></div>
                               </div>
+                            </div>
+                            <div className="text-xs font-bold text-gray-700">
+                              {groupAvgPosition != null ? `#${groupAvgPosition.toFixed(1)}` : '—'}
                             </div>
                           </div>
                         </td>
@@ -836,6 +1003,17 @@ export default function Performance() {
                            qTotal++;
                          });
                          const queryVisibility = qTotal > 0 ? Math.round((qMentioned / qTotal) * 100) : 0;
+                         let posSum = 0;
+                         let posCount = 0;
+                         platforms.forEach(p => {
+                           const st = query.platforms?.[p.id];
+                           const pos = query.positions?.[p.id] ?? null;
+                           if (st !== 'not_mentioned' && typeof pos === 'number') {
+                             posSum += pos;
+                             posCount++;
+                           }
+                         });
+                         const queryAvgPosition = posCount > 0 ? (posSum / posCount) : null;
                          
                          // Derive simple Sentiment label
                          let sentimentLabel: 'Positive' | 'Neutral' | 'Negative' = 'Neutral';
@@ -854,70 +1032,68 @@ export default function Performance() {
                                <td className="p-4 pl-12 text-sm text-gray-600 font-medium border-r border-gray-50 align-middle">
                                  {query.text}
                                </td>
-                               {/* Sentiment */}
-                               <td className="p-4 align-middle text-center">
-                                 <span className={clsx(
-                                   "text-xs font-bold px-2 py-1 rounded-full border",
-                                   sentimentLabel === 'Positive' && "bg-green-50 text-green-700 border-green-200",
-                                   sentimentLabel === 'Negative' && "bg-red-50 text-red-700 border-red-200",
-                                   sentimentLabel === 'Neutral' && "bg-gray-50 text-gray-600 border-gray-200"
-                                 )}>
-                                   {sentimentLabel}
-                                 </span>
-                               </td>
-                               {/* AI Platforms */}
-                               <td className="p-4 align-middle">
-                                 <div className="flex flex-col items-center gap-2">
-                                   <div className="flex items-center justify-center gap-1.5">
-                                   {platforms.map(platform => {
-                                     // Safe access
-                                     const status = query.platforms?.[platform.id] || 'not_mentioned';
-                                     const isCellSelected = isRowSelected && selectedCell?.platform === platform.id;
-                                     
-                                     return (
-                                       <button
-                                         key={`${query.id}-${platform.id}`}
-                                         onClick={() => {
-                                            if (isCellSelected) {
-                                              setSelectedCell(null);
-                                            } else {
-                                              setSelectedCell({ 
-                                                keyword: group.keyword, 
-                                                query: query.text, 
-                                                platform: platform.id, 
-                                                status 
-                                              });
-                                            }
-                                         }}
-                                         className={clsx(
-                                           "w-8 h-8 rounded-lg flex items-center justify-center transition-all relative group/icon",
-                                           status === 'mentioned' && "bg-green-100 text-green-600 hover:bg-green-200",
-                                           status === 'negative' && "bg-red-100 text-red-600 hover:bg-red-200",
-                                           status === 'not_mentioned' && "bg-gray-100 text-gray-300 hover:bg-gray-200",
-                                           isCellSelected && "ring-2 ring-primary ring-offset-1 z-10 scale-110"
-                                         )}
-                                         title={`${platform.label}: ${status.replace('_', ' ')}`}
-                                       >
-                                         <div className="text-[10px] font-bold">
-                                           {platform.label.charAt(0)}
-                                         </div>
-                                         {/* Status Dot */}
-                                         <div className={clsx(
-                                           "absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border-2 border-white",
-                                           status === 'mentioned' && "bg-green-500",
-                                           status === 'negative' && "bg-red-500",
-                                           status === 'not_mentioned' && "hidden"
-                                         )}></div>
-                                       </button>
-                                     );
-                                   })}
-                                   </div>
+                              {/* AI Platforms */}
+                              <td className="p-4 align-middle">
+                                <div className="flex flex-col items-center gap-2">
+                                  <div className="flex items-center justify-center gap-1">
+                                  {(['Gemini','ChatGPT','Claude'] as PlatformId[]).map((pid) => {
+                                    const platform = platforms.find(p => p.id === pid)!;
+                                    const status = query.platforms?.[platform.id] || 'not_mentioned';
+                                    const isCellSelected = isRowSelected && selectedCell?.platform === platform.id;
+                                    return (
+                                      <button
+                                        key={`${query.id}-${platform.id}`}
+                                        onClick={() => {
+                                          if (isCellSelected) {
+                                            setSelectedCell(null);
+                                          } else {
+                                            setSelectedCell({
+                                              keyword: group.keyword,
+                                              query: query.text,
+                                              platform: platform.id,
+                                              status
+                                            });
+                                          }
+                                        }}
+                                        className={clsx(
+                                          "w-7 h-7 rounded-lg flex items-center justify-center transition-all relative group/icon",
+                                          status === 'mentioned' && "bg-green-100 text-green-600 hover:bg-green-200",
+                                          status === 'negative' && "bg-red-100 text-red-600 hover:bg-red-200",
+                                          status === 'not_mentioned' && "bg-gray-100 text-gray-300 hover:bg-gray-200",
+                                          isCellSelected && "ring-2 ring-primary ring-offset-1 z-10 scale-105"
+                                        )}
+                                        title={`${platform.label}: ${status.replace('_', ' ')}`}
+                                      >
+                                        <div className="text-[10px] font-bold">
+                                          {platform.label.charAt(0)}
+                                        </div>
+                                        <div className={clsx(
+                                          "absolute -top-1 -right-1 w-2 h-2 rounded-full border-2 border-white",
+                                          status === 'mentioned' && "bg-green-500",
+                                          status === 'negative' && "bg-red-500",
+                                          status === 'not_mentioned' && "hidden"
+                                        )}></div>
+                                      </button>
+                                    );
+                                  })}
                                   </div>
-                                </td>
+                                 </div>
+                              </td>
+                              {/* Sentiment */}
+                              <td className="p-4 align-middle text-center">
+                                <span className={clsx(
+                                  "text-xs font-bold px-2 py-1 rounded-full border",
+                                  sentimentLabel === 'Positive' && "bg-green-50 text-green-700 border-green-200",
+                                  sentimentLabel === 'Negative' && "bg-red-50 text-red-700 border-red-200",
+                                  sentimentLabel === 'Neutral' && "bg-gray-50 text-gray-600 border-gray-200"
+                                )}>
+                                  {sentimentLabel}
+                                </span>
+                              </td>
                                {/* Visibility Score */}
                                <td className="p-4 align-middle">
                                  <div className="flex flex-col items-center gap-2">
-                                   <div className="flex items-center gap-2 w-full max-w-[140px]">
+                                   <div className="flex items-center gap-2 w-full max-w-[120px]">
                                      <div className="text-xs font-bold text-gray-700 w-8 text-right">{queryVisibility}%</div>
                                      <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
                                        <div 
@@ -932,12 +1108,18 @@ export default function Performance() {
                                    </div>
                                  </div>
                                </td>
+                               {/* Average Position */}
+                               <td className="p-4 align-middle text-center">
+                                 <span className="text-sm font-bold text-gray-800">
+                                   {queryAvgPosition != null ? `#${queryAvgPosition.toFixed(1)}` : '—'}
+                                 </span>
+                               </td>
                               </tr>
 
                              {/* Expandable Detail Panel */}
                              {isRowSelected && selectedCell && (
                                <tr className="animate-in fade-in zoom-in duration-200">
-                                 <td colSpan={2} className="p-0 border-b border-gray-200">
+                                 <td colSpan={5} className="p-0 border-b border-gray-200">
                                    <div className="bg-white p-6 border-l-4 border-primary relative shadow-inner">
                                       <div className="flex justify-between items-start mb-6">
                                         <div className="flex items-center gap-3">
@@ -1578,7 +1760,6 @@ export default function Performance() {
             </div>
           </div>
         )}
-      </div>
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/40" onClick={() => setIsModalOpen(false)}></div>
@@ -1765,8 +1946,9 @@ export default function Performance() {
                   ))}
                 </div>
               </div>
-              <div>
-                <div className="text-xs font-bold text-gray-500 uppercase mb-2">Monitor Platforms</div>
+              <div className="relative">
+                <div className="absolute -top-4 left-0 text-[10px] text-gray-400">（后续是否作为升级项）</div>
+                <div className="text-xs font-bold text-gray-500 uppercase mb-2">MONITOR PLATFORMS</div>
                 <div className="grid grid-cols-2 gap-2">
                   {platforms.map((p) => (
                     <label key={p.id} className="flex items-center justify-between p-2 border border-gray-100 rounded-lg hover:bg-gray-50 cursor-pointer">
