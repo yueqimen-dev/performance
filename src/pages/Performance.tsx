@@ -31,6 +31,8 @@ import {
   Target, 
   Check,
   Sparkles,
+  History,
+  Download,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -182,7 +184,12 @@ export default function Performance() {
   const [editingGroupValue, setEditingGroupValue] = useState('');
   const [editingQueryId, setEditingQueryId] = useState<string | null>(null);
   const [editingQueryValue, setEditingQueryValue] = useState('');
+  const [addingQueryGroupId, setAddingQueryGroupId] = useState<string | null>(null);
+  const [addingQueryValue, setAddingQueryValue] = useState('');
+  const [newlyAddedQueryIds, setNewlyAddedQueryIds] = useState<Set<string>>(new Set());
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
+  const [selectedHistoryQuery, setSelectedHistoryQuery] = useState<{id: string, text: string} | null>(null);
   const [isSaveConfirmOpen, setIsSaveConfirmOpen] = useState(false);
   const [newGroupTerm, setNewGroupTerm] = useState('');
   const [newQueryInput, setNewQueryInput] = useState('');
@@ -252,6 +259,39 @@ export default function Performance() {
       setEditingQueryValue('');
     }
   };
+  const handleAddQueryToGroup = (groupId: string) => {
+    setAddingQueryGroupId(groupId);
+    setAddingQueryValue('');
+  };
+  
+  const handleConfirmAddQueryToGroup = () => {
+    if (!dataDraft || !addingQueryGroupId) return;
+    const newQueryText = addingQueryValue.trim();
+    if (!newQueryText) return;
+    
+    const newQueryId = `q-${Date.now()}-${Math.random()}`;
+    
+    const newData = dataDraft.map(g => {
+      if (g.id === addingQueryGroupId) {
+        return {
+          ...g,
+          queries: [...g.queries, {
+            id: newQueryId,
+            text: newQueryText,
+            platforms: {},
+            positions: undefined
+          }]
+        };
+      }
+      return g;
+    });
+    setDataDraft(newData);
+    setHasDraftChanges(true);
+    setNewlyAddedQueryIds(prev => new Set(prev).add(newQueryId));
+    setAddingQueryGroupId(null);
+    setAddingQueryValue('');
+  };
+
   const handleAddModalOpen = () => {
     setIsAddModalOpen(true);
     setNewGroupTerm('');
@@ -272,18 +312,30 @@ export default function Performance() {
     if (!dataDraft) return;
     const term = newGroupTerm.trim();
     if (!term || newQueries.length === 0) return;
+
+    const queriesToAdd = newQueries.map(q => ({
+      id: `q-${Date.now()}-${Math.random()}-${q.id}`,
+      text: q.text,
+      platforms: {},
+      positions: undefined
+    }));
+
     const newGroup: KeywordGroup = {
       id: `k${Date.now()}-${Math.random()}`,
       keyword: term,
-      queries: newQueries.map(q => ({
-        id: `q-${Date.now()}-${Math.random()}`,
-        text: q.text,
-        platforms: {},
-        positions: undefined
-      }))
+      queries: queriesToAdd
     };
+
     setDataDraft([...dataDraft, newGroup]);
     setHasDraftChanges(true);
+
+    // Add new query IDs to the set so they show the NEW badge
+    setNewlyAddedQueryIds(prev => {
+      const newSet = new Set(prev);
+      queriesToAdd.forEach(q => newSet.add(q.id));
+      return newSet;
+    });
+
     setIsAddModalOpen(false);
   };
   const handleSaveDraft = () => {
@@ -503,7 +555,7 @@ export default function Performance() {
       </div>
 
       {/* AI Copilot Input - SaaS Dashboard Style */}
-      {(activeTab === 'data' || activeTab === 'query') && (
+      {(activeTab === 'data' || activeTab === 'query') && role !== 'free' && (
         <div className="bg-white border border-gray-200 rounded-2xl p-1.5 shadow-sm relative z-20 group transition-all duration-300 hover:shadow-md hover:border-purple-200">
           <div className="relative flex items-center p-1">
             <div className="w-9 h-9 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center mr-3 shrink-0 transition-colors group-hover:bg-purple-100">
@@ -593,16 +645,6 @@ export default function Performance() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
               {/* Left Column: Traffic Analytics */}
               <div className="space-y-6 relative">
-                {role === 'pending' && (
-                  <div className="absolute top-20 bottom-0 left-0 right-0 z-20 backdrop-blur-sm bg-white/60 flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-300">
-                     <button
-                        onClick={() => setTrafficSettingsOpen(true)}
-                        className="px-6 py-3 bg-black text-white rounded-xl font-bold hover:bg-gray-800 shadow-lg active:scale-95 flex items-center gap-2 transition-all"
-                      >
-                        <Settings size={18} /> 链接 Google Analytics
-                      </button>
-                  </div>
-                )}
                 <div className={clsx((role === 'free') && "filter blur-sm select-none pointer-events-none")}>
                 <div className="flex items-start gap-4">
                   <div className="flex-1">
@@ -611,18 +653,11 @@ export default function Performance() {
                         <BarChart2 size={20} />
                       </div>
                       <h3 className="font-bold text-gray-900 text-lg">Traffic Sources</h3>
-                      <button
-                        onClick={() => setTrafficSettingsOpen(true)}
-                        className="ml-2 p-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50"
-                        title="Traffic Source Settings"
-                      >
-                        <Settings size={16} />
-                      </button>
                     </div>
                   </div>
                 </div>
 
-                <div className="text-[11px] text-gray-400 mb-2">Last updated: {lastUpdated}</div>
+                {role !== 'pending' && <div className="text-[11px] text-gray-400 mb-2">Last updated: {lastUpdated}</div>}
 
                 <div className="grid grid-cols-3 gap-4">
                   <div 
@@ -686,8 +721,8 @@ export default function Performance() {
                     
                   </div>
                 </div>
-                <div className="h-[300px] w-full bg-white border border-gray-200 rounded-2xl p-6 shadow-sm relative overflow-hidden">
-                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-green-500 to-purple-500 opacity-20"></div>
+                <div className="h-[500px] w-full bg-white border border-gray-200 rounded-2xl p-6 shadow-sm relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-full h-0 bg-gradient-to-r from-blue-500 via-green-500 to-purple-500 opacity-20"></div>
                   <div className="flex items-center justify-between mb-6 relative z-10">
                     <h4 className="font-bold text-gray-900 flex items-center gap-2">
                       <div className="p-1.5 rounded-lg bg-blue-100 text-blue-600">
@@ -703,6 +738,13 @@ export default function Performance() {
                         title="Choose date range"
                       >
                         {getTimeRangeLabel()}
+                      </button>
+                      <button
+                        onClick={() => setTrafficSettingsOpen(true)}
+                        className="ml-2 p-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50"
+                        title="Traffic Source Settings"
+                      >
+                        <Settings size={16} />
                       </button>
                       
                       {timeMenuOpen && (
@@ -791,12 +833,12 @@ export default function Performance() {
                       
                   </div></div>
                   {role === 'pending' ? (
-                    <div className="absolute top-20 bottom-0 left-0 right-0 z-20 backdrop-blur-sm bg-white/60 flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-300">
+                    <div className="absolute inset-0 z-20 backdrop-blur-sm bg-white/60 flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-300">
                       <button
                         onClick={() => setTrafficSettingsOpen(true)}
                         className="px-6 py-3 bg-black text-white rounded-xl font-bold hover:bg-gray-800 shadow-lg active:scale-95 flex items-center gap-2 transition-all"
                       >
-                        <Settings size={18} /> 链接 Google Analytics
+                        <Settings size={18} /> Link Google Analytics
                       </button>
                     </div>
                   ) : (
@@ -806,12 +848,11 @@ export default function Performance() {
                           onClick={() => setTrafficSettingsOpen(true)}
                           className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 shadow-lg active:scale-95 flex items-center gap-2"
                         >
-                          <Settings size={16} /> 关联我的 Google Analytics 账号
+                          <Settings size={16} /> Link Google Analytics
                         </button>
                       </div>
                     )
                   )}
-                  <div className="text-[11px] text-gray-400 mb-2">Last updated: {lastUpdated}</div>
                   
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
@@ -840,27 +881,13 @@ export default function Performance() {
 
               {/* Right Column: Visibility & Sentiment */}
               <div className="space-y-6 relative">
-                 {role === 'pending' && (
-                  <div className="absolute top-10 bottom-0 left-0 right-0 z-20 backdrop-blur-sm bg-white/60 flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-300">
-                     <button
-                        onClick={() => {
-                          setIsEditMode(true);
-                          setDataDraft(makeDraft(attributionData));
-                          // Switch to Query tab to manage keywords
-                          setActiveTab('query');
-                        }}
-                        className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 shadow-lg active:scale-95 flex items-center gap-2 transition-all"
-                      >
-                        <MessageSquare size={18} /> 管理 Query
-                      </button>
-                  </div>
-                )}
+
                 <div className={clsx((role === 'free') && "filter blur-sm select-none pointer-events-none")}>
                 <h3 className="font-bold text-gray-900 text-lg flex items-center gap-2">
                   <Zap className="text-orange-500" size={20} />
                   AI Visibility
                 </h3>
-                <div className="text-[11px] text-gray-400">Last updated: {lastUpdated}</div>
+                {role !== 'pending' && <div className="text-[11px] text-gray-400">Last updated: {lastUpdated}</div>}
                 
                 <div className="grid grid-cols-3 gap-4 h-[140px]">
                   <div 
@@ -887,7 +914,12 @@ export default function Performance() {
                     </div>
                     
                     <div className="relative z-10 mt-2">
-                      <div className="text-3xl font-bold text-gray-900 tracking-tight">{isVisibilityActive ? <>72<span className="text-lg text-gray-400 font-medium">/100</span></> : '?'}</div>
+                      <div className="flex items-end justify-between">
+                      <div className="text-3xl font-bold text-gray-900 tracking-tight">{isVisibilityActive ? '72%' : '?'}</div>
+                      <div className="text-xs font-medium text-gray-400 mb-1">
+                        {isVisibilityActive ? '252/350' : '-/-'}
+                      </div>
+                    </div>
                       
                     </div>
                     
@@ -909,7 +941,7 @@ export default function Performance() {
                          <div className={clsx("p-2 rounded-lg transition-colors", activeMetric === 'sentiment' ? "bg-indigo-50 text-indigo-600" : "bg-gray-50 text-gray-400 group-hover:bg-indigo-50 group-hover:text-indigo-600")}>
                            <MessageSquare size={18} />
                          </div>
-                         <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">SENTIMENT</span>
+                         <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">POSITIVE SENTIMENT</span>
                          <span className="relative group inline-flex items-center">
                            <HelpCircle size={12} className="text-gray-400" />
                            <span className="absolute top-full left-0 mt-1 hidden group-hover:block bg-black text-white text-[10px] px-2 py-1 rounded shadow">占位</span>
@@ -957,7 +989,7 @@ export default function Performance() {
                 </div>
 
                 {/* Trend Chart Area - SaaS Style */}
-                <div className="h-[340px] bg-white border border-gray-200 rounded-2xl p-6 shadow-sm animate-in fade-in duration-300 relative overflow-visible">
+                <div className="h-[400px] bg-white border border-gray-200 rounded-2xl p-6 shadow-sm animate-in fade-in duration-300 relative overflow-visible">
                   <div className="flex items-center justify-between mb-6 relative z-10">
                     <h4 className="font-bold text-gray-900 flex items-center gap-2">
                       <div className={clsx("p-1.5 rounded-lg", activeMetric === 'visibility' ? "bg-orange-100 text-orange-600" : "bg-indigo-100 text-indigo-600")}>
@@ -982,9 +1014,9 @@ export default function Performance() {
                     </div>
                   </div>
                   
-                <div className="h-[260px] w-full relative z-10">
+                <div className="h-[300px] w-full relative z-10">
                   {activeMetric === 'visibility' && !isVisibilityActive && !visConfigOpen && (
-                    <div className="absolute inset-0 bg-white/70 backdrop-blur-sm flex items-center justify-center z-20">
+                    <div className="absolute inset-0 bg-white/70 backdrop-blur-sm flex items-center justify-center z-20" style={{ height: '400px', paddingLeft: 0, paddingRight: 0, marginTop: '-55px', marginBottom: '-55px' }}>
                       <button className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 shadow-lg active:scale-95 flex items-center gap-2">
                         <Settings size={16} /> Configure AI Visibility
                       </button>
@@ -1075,10 +1107,6 @@ export default function Performance() {
                         )}
                             </LineChart>
                           </ResponsiveContainer>
-                          <div className="mt-2 text-[10px] text-gray-500">
-                            最近更新时间：{new Date().toLocaleString()}
-                            {lastUpdateLabel ? `（最后有数据：${lastUpdateLabel}）` : ''}
-                          </div>
                         </>
                       );
                     })()}
@@ -1108,25 +1136,26 @@ export default function Performance() {
               <div className="space-y-3">
                 <button
                   onClick={handleConfirmSaveNow}
-                  className="w-full bg-black text-white py-2.5 rounded-lg font-bold hover:bg-gray-800 transition-colors"
+                  className="w-full bg-black text-white py-2.5 rounded-lg font-bold hover:bg-gray-800 transition-colors flex flex-col items-center justify-center gap-1"
                 >
-                  Update Data Now (approx XXX tickets)
+                  <span>Update Data Now</span>
+                  <span className="text-[10px] font-normal text-gray-400">
+                    Estimated cost: ~150 tokens
+                  </span>
                 </button>
                 <button
                   onClick={handleConfirmSaveAuto}
-                  className="w-full bg-white border border-gray-300 text-gray-700 py-2.5 rounded-lg font-bold hover:bg-gray-50 transition-colors"
+                  className="w-full bg-white border border-gray-300 text-gray-700 py-2.5 rounded-lg font-bold hover:bg-gray-50 transition-colors flex flex-col items-center justify-center gap-1"
                 >
-                  Auto-Update Later
+                  <span>Auto-Update Later</span>
+                  <span className="text-[10px] font-normal text-gray-400">
+                    Currently updates every {updateIntervalDays} days, next update {new Date(Date.now() + updateIntervalDays * 24 * 60 * 60 * 1000).toLocaleDateString()}
+                  </span>
                 </button>
-                <div className="text-[11px] text-gray-400 text-center">
-                  Currently updates every {updateIntervalDays} days, next update {new Date(Date.now() + updateIntervalDays * 24 * 60 * 60 * 1000).toLocaleDateString()}
-                </div>
                 <button
                   onClick={() => { handleDiscardDraft(); setIsSaveConfirmOpen(false); setIsEditMode(false); }}
-                  className="w-full text-red-600 font-bold py-2.5 rounded-lg hover:bg-red-50 transition-colors"
-                >
-                  Cancel This Change (revert to original preview state)
-                </button>
+                  className="w-full bg-white text-gray-700 font-bold py-2.5 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors"
+                >Cancel</button>
               </div>
             </div>
           </div>
@@ -1142,7 +1171,7 @@ export default function Performance() {
             ></div>
             <div className="relative bg-white w-full max-w-md rounded-2xl shadow-2xl border border-gray-200 p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-lg">关联 Google Analytics</h3>
+                <h3 className="font-bold text-lg">{isGA4Connected ? 'Change Google Analytics Account' : 'Connect Google Analytics'}</h3>
                 <button
                   onClick={() => {
                     setTrafficSettingsOpen(false);
@@ -1154,55 +1183,55 @@ export default function Performance() {
                   <X size={16} />
                 </button>
               </div>
+              {isGA4Connected ? (
+                <div className="space-y-4">
+                  <div className="text-sm text-gray-600">
+                    You are currently connected to Google Analytics. Click the button below to switch accounts.
+                  </div>
+                  <button
+                    onClick={() => { window.open('https://analytics.google.com/', '_blank'); }}
+                    className="w-full bg-black text-white py-2.5 rounded-lg font-bold hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
+                  >
+                    Change Account
+                  </button>
+                </div>
+              ) : (
+                <>
               {!trafficJFChoice && (
                 <div className="space-y-3">
                   <button
                     onClick={() => setTrafficJFChoice('has')}
                     className="w-full bg-black text-white py-2.5 rounded-lg font-bold hover:bg-gray-800 transition-colors"
-                  >
-                    我已有 Google Analytics 账号
-                  </button>
+                  >I have a Google Analytics account</button>
                   <button
                     onClick={() => setTrafficJFChoice('no')}
                     className="w-full bg-white border border-gray-300 text-gray-700 py-2.5 rounded-lg font-bold hover:bg-gray-50 transition-colors"
-                  >
-                    我没有 Google Analytics 账号
-                  </button>
+                  >I don't have a Google Analytics account</button>
                 </div>
               )}
               {trafficJFChoice === 'has' && (
                 <div className="space-y-4">
                   <div className="text-sm text-gray-600">
-                    将跳转到 Google Analytics 登录完成授权连接。
+                    You will be redirected to Google Analytics to complete the authorization.
                   </div>
                   <button
                     onClick={() => { window.open('https://analytics.google.com/', '_blank'); }}
                     className="w-full bg-primary text-white py-2.5 rounded-lg font-bold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
                   >
-                    <ExternalLink size={16} /> 去连接 Google Analytics
+                    <ExternalLink size={16} /> Connect Google Analytics
                   </button>
                 </div>
               )}
               {trafficJFChoice === 'no' && (
                 <div className="space-y-4">
-                  <div className="text-sm text-gray-600">
-                    您可以先创建 Google Analytics 账号，并完成网站绑定（安装 GA 代码）。
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => window.open('https://support.google.com/analytics/answer/9304153', '_blank')}
-                      className="flex-1 bg-white border border-gray-300 text-gray-700 py-2.5 rounded-lg font-bold hover:bg-gray-50 transition-colors"
-                    >
-                      了解 GA
-                    </button>
-                    <button
-                      onClick={() => window.open('https://analytics.google.com/', '_blank')}
-                      className="flex-1 bg-black text-white py-2.5 rounded-lg font-bold hover:bg-gray-800 transition-colors"
-                    >
-                      去注册 GA
-                    </button>
-                  </div>
+                  <div className="text-sm text-gray-600">Please follow the instructions below to complete the binding.</div>
+                  <button
+                    onClick={() => window.open('https://vxqhv8tzaua.feishu.cn/wiki/FVSOwGJG1i1wY3kqNt3ctEUhnmc', '_blank')}
+                    className="w-full bg-black text-white py-2.5 rounded-lg font-bold hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
+                  >View Method</button>
                 </div>
+              )}
+                </>
               )}
             </div>
           </div>
@@ -1227,7 +1256,7 @@ export default function Performance() {
                       }}
                       className="text-xs font-bold text-indigo-600 hover:bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-200 transition-colors flex items-center gap-2"
                     >
-                      <Edit2 size={14} /> Edit Keywords
+                      <Edit2 size={14} /> Edit
                     </button>
                  )}
                </div>
@@ -1243,6 +1272,7 @@ export default function Performance() {
                     <th className="p-3 font-semibold text-gray-500 text-sm text-center min-w-[120px]">Sentiment</th>
                     <th className="p-3 font-semibold text-gray-500 text-sm text-center min-w-[140px]">Visibility Score</th>
                     <th className="p-3 font-semibold text-gray-500 text-sm text-center min-w-[120px]">Average Position</th>
+                    <th className="p-3 font-semibold text-gray-500 text-sm text-center min-w-[80px]"></th>
                   </tr>
                  </thead>
                  <tbody>
@@ -1269,11 +1299,11 @@ export default function Performance() {
                    });
                    const groupVisibility = gTotal > 0 ? Math.round((gMentioned / gTotal) * 100) : 0;
                    const groupAvgPosition = gPosCount > 0 ? (gPosSum / gPosCount) : null;
-                   let groupSentiment: 'Positive' | 'Neutral' | 'Negative' = 'Neutral';
+                   let groupSentiment: 'Positive' | 'Negative' = 'Positive';
                    if (gNegative > gMentioned) {
                      groupSentiment = 'Negative';
-                   } else if (gMentioned > 0 && gMentioned >= gNegative) {
-                     groupSentiment = gNegative > 0 ? 'Neutral' : 'Positive';
+                   } else {
+                     groupSentiment = 'Positive';
                    }
                     return (
                      <React.Fragment key={group.id}>
@@ -1282,8 +1312,8 @@ export default function Performance() {
                          className="bg-gray-50 hover:bg-gray-100 cursor-pointer border-b border-gray-100 transition-colors"
                          onClick={() => toggleKeyword(group.id)}
                        >
-                        <td colSpan={5} className="p-4 font-bold text-gray-800">
-                          <div className="grid grid-cols-[minmax(300px,1fr)_180px_120px_140px_120px] items-center gap-3">
+                        <td colSpan={6} className="p-4 font-bold text-gray-800">
+                          <div className="grid grid-cols-[minmax(300px,1fr)_180px_120px_140px_120px_80px] items-center gap-3">
                             <div className="flex items-center gap-2">
                               {expandedKeywords.includes(group.id) ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                               {isEditMode && editingGroupId === group.id ? (
@@ -1306,6 +1336,16 @@ export default function Performance() {
                                 <>
                                   <button
                                     className="p-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleAddQueryToGroup(group.id);
+                                    }}
+                                    title="Add query"
+                                  >
+                                    <Plus size={14} />
+                                  </button>
+                                  <button
+                                    className="p-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50"
                                     onClick={() => handleStartEditGroup(group)}
                                     title="Edit group"
                                   >
@@ -1325,8 +1365,7 @@ export default function Performance() {
                               <span className={clsx(
                                 "text-[10px] font-bold px-2 py-0.5 rounded-full border",
                                 groupSentiment === 'Positive' && "bg-green-50 text-green-700 border-green-200",
-                                groupSentiment === 'Negative' && "bg-red-50 text-red-700 border-red-200",
-                                groupSentiment === 'Neutral' && "bg-gray-50 text-gray-600 border-gray-200"
+                                groupSentiment === 'Negative' && "bg-red-50 text-red-700 border-red-200"
                               )}>
                                 {groupSentiment}
                               </span>
@@ -1379,12 +1418,14 @@ export default function Performance() {
                          const queryAvgPosition = posCount > 0 ? (posSum / posCount) : null;
                          
                          // Derive simple Sentiment label
-                         let sentimentLabel: 'Positive' | 'Neutral' | 'Negative' = 'Neutral';
+                         let sentimentLabel: 'Positive' | 'Negative' = 'Positive';
                          if (qNegative > qMentioned) {
                            sentimentLabel = 'Negative';
-                         } else if (qMentioned > 0 && qMentioned >= qNegative) {
-                           sentimentLabel = qNegative > 0 ? 'Neutral' : 'Positive';
+                         } else {
+                           sentimentLabel = 'Positive';
                          }
+                         
+                         const isNewQuery = newlyAddedQueryIds.has(query.id);
                          
                          return (
                            <React.Fragment key={query.id}>
@@ -1400,19 +1441,18 @@ export default function Performance() {
                                      onBlur={() => handleApplyEditQuery(group.id)}
                                      onKeyDown={(e) => { if (e.key === 'Enter') handleApplyEditQuery(group.id); }}
                                      className="w-full px-2 py-1 border border-gray-300 rounded-md text-sm"
+                                     autoFocus
                                    />
                                  ) : (
                                    <div className="flex items-center justify-between">
-                                     <span>{query.text}</span>
+                                     <div className="flex items-center gap-2">
+                                       {isNewQuery && (
+                                         <span className="text-[10px] font-bold text-white bg-blue-500 px-1.5 py-0.5 rounded">NEW</span>
+                                       )}
+                                       <span>{query.text}</span>
+                                     </div>
                                      {isEditMode && (
                                        <div className="flex items-center gap-1 ml-2">
-                                         <button
-                                           className="p-1 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50"
-                                           onClick={() => handleStartEditQuery(query)}
-                                           title="Edit query"
-                                         >
-                                           <Edit2 size={12} />
-                                         </button>
                                          <button
                                            className="p-1 border border-gray-200 rounded-lg text-red-600 hover:bg-red-50"
                                            onClick={() => handleDeleteQuery(group.id, query.id)}
@@ -1427,6 +1467,9 @@ export default function Performance() {
                                </td>
                               {/* AI Platforms */}
                               <td className="p-4 align-middle">
+                               {isNewQuery ? (
+                                 <div className="flex justify-center text-gray-400 text-sm">—</div>
+                               ) : (
                                 <div className="flex flex-col items-center gap-2">
                                   <div className="flex items-center justify-center gap-1">
                                   {(['Gemini','ChatGPT','Claude'] as PlatformId[]).map((pid) => {
@@ -1471,20 +1514,27 @@ export default function Performance() {
                                   })}
                                   </div>
                                  </div>
+                               )}
                               </td>
                               {/* Sentiment */}
                               <td className="p-4 align-middle text-center">
+                               {isNewQuery ? (
+                                 <div className="text-gray-400 text-sm">—</div>
+                               ) : (
                                 <span className={clsx(
                                   "text-xs font-bold px-2 py-1 rounded-full border",
                                   sentimentLabel === 'Positive' && "bg-green-50 text-green-700 border-green-200",
-                                  sentimentLabel === 'Negative' && "bg-red-50 text-red-700 border-red-200",
-                                  sentimentLabel === 'Neutral' && "bg-gray-50 text-gray-600 border-gray-200"
+                                  sentimentLabel === 'Negative' && "bg-red-50 text-red-700 border-red-200"
                                 )}>
                                   {sentimentLabel}
                                 </span>
+                               )}
                               </td>
                                {/* Visibility Score */}
                                <td className="p-4 align-middle">
+                               {isNewQuery ? (
+                                 <div className="flex justify-center text-gray-400 text-sm">—</div>
+                               ) : (
                                  <div className="flex flex-col items-center gap-2">
                                    <div className="flex items-center gap-2 w-full max-w-[120px]">
                                      <div className="text-xs font-bold text-gray-700 w-8 text-right">{queryVisibility}%</div>
@@ -1500,19 +1550,34 @@ export default function Performance() {
                                      </div>
                                    </div>
                                  </div>
+                               )}
                                </td>
                                {/* Average Position */}
                                <td className="p-4 align-middle text-center">
                                  <span className="text-sm font-bold text-gray-800">
-                                   {queryAvgPosition != null ? `#${queryAvgPosition.toFixed(1)}` : '—'}
+                                   {isNewQuery ? '—' : (queryAvgPosition != null ? `#${queryAvgPosition.toFixed(1)}` : '—')}
                                  </span>
+                               </td>
+                               {/* Actions */}
+                               <td className="p-4 align-middle text-center">
+                                 <button 
+                                   className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                                   onClick={(e) => {
+                                     e.stopPropagation();
+                                     setSelectedHistoryQuery({ id: query.id, text: query.text });
+                                     setHistoryModalOpen(true);
+                                   }}
+                                   title="View History"
+                                 >
+                                   <History size={16} />
+                                 </button>
                                </td>
                               </tr>
 
                              {/* Expandable Detail Panel */}
                              {isRowSelected && selectedCell && (
                                <tr className="animate-in fade-in zoom-in duration-200">
-                                 <td colSpan={5} className="p-0 border-b border-gray-200">
+                                 <td colSpan={6} className="p-0 border-b border-gray-200">
                                    <div className="bg-white p-6 border-l-4 border-primary relative shadow-inner">
                                       <div className="flex justify-between items-start mb-6">
                                         <div className="flex items-center gap-3">
@@ -1599,9 +1664,7 @@ export default function Performance() {
                                                     </div>
                                                   </div>
                                                   <div className="flex items-center gap-2">
-                                                    <span className="text-xs font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full border border-gray-200">
-                                                      Neutral
-                                                    </span>
+                                                    <span className="text-xs font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full border border-gray-200">Neutral</span>
                                                     <button className="text-primary opacity-0 group-hover:opacity-100 p-1.5 hover:bg-primary/5 rounded-md transition-all" title="Open Link">
                                                       <ExternalLink size={14} />
                                                     </button>
@@ -1694,6 +1757,29 @@ export default function Performance() {
                            </React.Fragment>
                          );
                        })}
+                       
+                       {/* Add New Query Input Row */}
+                       {isEditMode && addingQueryGroupId === group.id && (
+                         <tr>
+                           <td className="p-4 pl-12 text-sm text-gray-600 font-medium border-r border-gray-50 align-middle" colSpan={6}>
+                             <input
+                               value={addingQueryValue}
+                               onChange={(e) => setAddingQueryValue(e.target.value)}
+                               onBlur={handleConfirmAddQueryToGroup}
+                               onKeyDown={(e) => {
+                                 if (e.key === 'Enter') handleConfirmAddQueryToGroup();
+                                 if (e.key === 'Escape') {
+                                   setAddingQueryGroupId(null);
+                                   setAddingQueryValue('');
+                                 }
+                               }}
+                               placeholder="Type new query and press Enter..."
+                               className="w-full px-2 py-1 border border-blue-300 rounded-md text-sm focus:ring-2 focus:ring-blue-200 outline-none"
+                               autoFocus
+                             />
+                           </td>
+                         </tr>
+                       )}
                      </React.Fragment>
                    );
                    })}
@@ -2306,6 +2392,164 @@ export default function Performance() {
                   Save
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {historyModalOpen && selectedHistoryQuery && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center animate-in fade-in duration-200">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setHistoryModalOpen(false)}></div>
+          <div className="relative bg-white rounded-2xl shadow-xl max-w-5xl w-full p-6 m-4 animate-in zoom-in-95 duration-200 h-[80vh] flex flex-col">
+            <div className="flex items-center justify-between mb-6 border-b border-gray-100 pb-4 shrink-0">
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-2">
+                  <History size={20} className="text-gray-500" />
+                  Query History
+                </h3>
+                <p className="text-xl font-semibold text-gray-800 mb-1">"{selectedHistoryQuery.text}"</p>
+                <p className="text-xs text-gray-400">Only showing the last 30 query records</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button 
+                  className="px-3 py-1.5 border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 flex items-center gap-2 text-sm font-medium transition-colors"
+                  onClick={() => {
+                    // Placeholder for export functionality
+                    alert("Exporting history for: " + selectedHistoryQuery.text);
+                  }}
+                >
+                  <Download size={14} />
+                  Export
+                </button>
+                <button 
+                  onClick={() => setHistoryModalOpen(false)}
+                  className="p-2 hover:bg-gray-100 rounded-full text-gray-400 transition-colors ml-2"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+            
+            <div className="flex-1 overflow-auto border border-gray-200 rounded-xl">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
+                  <tr>
+                    <th className="px-4 py-3 font-semibold text-gray-600 w-32">Date</th>
+                    <th className="px-4 py-3 font-semibold text-gray-600 w-32">Platform</th>
+                    <th className="px-4 py-3 font-semibold text-gray-600 w-24 text-center">Status</th>
+                    <th className="px-4 py-3 font-semibold text-gray-600 w-24 text-center">Rank</th>
+                    <th className="px-4 py-3 font-semibold text-gray-600 w-28 text-center">Sentiment</th>
+                    <th className="px-4 py-3 font-semibold text-gray-600 w-48">Competitors Mentioned</th>
+                    <th className="px-4 py-3 font-semibold text-gray-600">Mention Snippet</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {[
+                    { 
+                      date: 'May 24, 2024', 
+                      platforms: [
+                        { name: 'ChatGPT', status: 'mentioned', rank: 2, sentiment: 85, competitors: ['Competitor A', 'Competitor B'], snippet: '"WorkfxAI is a strong contender in the AI analytics space, offering unique visibility metrics..."' },
+                        { name: 'Claude', status: 'mentioned', rank: 3, sentiment: 78, competitors: ['Competitor A'], snippet: '"While Competitor A is popular, WorkfxAI provides more granular data on AI traffic sources."' },
+                        { name: 'Gemini', status: 'not_mentioned', rank: null, sentiment: null, competitors: ['Competitor A', 'Competitor C'], snippet: '—' }
+                      ]
+                    },
+                    { 
+                      date: 'May 17, 2024', 
+                      platforms: [
+                        { name: 'ChatGPT', status: 'mentioned', rank: 3, sentiment: 82, competitors: ['Competitor A'], snippet: '"Tools like WorkfxAI help marketers track dark social traffic effectively."' },
+                        { name: 'Claude', status: 'not_mentioned', rank: null, sentiment: null, competitors: ['Competitor A', 'Competitor B'], snippet: '—' },
+                        { name: 'Gemini', status: 'negative', rank: 5, sentiment: 35, competitors: ['Competitor C'], snippet: '"Some users report that WorkfxAI has a steeper learning curve compared to Competitor C."' }
+                      ]
+                    },
+                    { 
+                      date: 'May 10, 2024', 
+                      platforms: [
+                        { name: 'ChatGPT', status: 'not_mentioned', rank: null, sentiment: null, competitors: ['Competitor A', 'Competitor B'], snippet: '—' },
+                        { name: 'Claude', status: 'not_mentioned', rank: null, sentiment: null, competitors: ['Competitor A'], snippet: '—' },
+                        { name: 'Gemini', status: 'not_mentioned', rank: null, sentiment: null, competitors: ['Competitor C'], snippet: '—' }
+                      ]
+                    }
+                  ].map((row, i) => (
+                    <React.Fragment key={i}>
+                      {row.platforms.map((platform, j) => (
+                        <tr key={`${i}-${j}`} className={clsx("hover:bg-gray-50 transition-colors", j === 0 ? "border-t border-gray-200" : "")}>
+                          {j === 0 && (
+                            <td className="px-4 py-3 text-gray-900 font-bold border-r border-gray-100 align-top bg-gray-50/50" rowSpan={row.platforms.length}>
+                              {row.date}
+                            </td>
+                          )}
+                          <td className="px-4 py-3 font-medium text-gray-700 align-top">
+                            {platform.name}
+                          </td>
+                          <td className="px-4 py-3 text-center align-top">
+                            <span className={clsx(
+                              "text-[10px] font-bold px-2 py-0.5 rounded-full border inline-block",
+                              platform.status === 'mentioned' && "bg-green-50 text-green-700 border-green-200",
+                              platform.status === 'negative' && "bg-red-50 text-red-700 border-red-200",
+                              platform.status === 'not_mentioned' && "bg-gray-50 text-gray-500 border-gray-200"
+                            )}>
+                              {platform.status === 'mentioned' ? 'Mentioned' : platform.status === 'negative' ? 'Negative' : 'Not Mentioned'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-center font-bold text-gray-700 align-top">
+                            {platform.rank ? `#${platform.rank}` : '—'}
+                          </td>
+                          <td className="px-4 py-3 text-center align-top">
+                            {platform.sentiment !== null ? (
+                              <div className="flex flex-col items-center gap-1">
+                                <span className={clsx(
+                                  "text-xs font-bold",
+                                  platform.sentiment >= 70 ? "text-green-600" :
+                                  platform.sentiment >= 40 ? "text-yellow-600" : "text-red-600"
+                                )}>
+                                  {platform.sentiment}%
+                                </span>
+                                <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                  <div 
+                                    className={clsx(
+                                      "h-full rounded-full",
+                                      platform.sentiment >= 70 ? "bg-green-500" : 
+                                      platform.sentiment >= 40 ? "bg-yellow-500" : "bg-red-500"
+                                    )} 
+                                    style={{ width: `${platform.sentiment}%` }}
+                                  ></div>
+                                </div>
+                              </div>
+                            ) : (
+                              <span className="text-gray-400">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-600 align-top">
+                            {platform.competitors.length > 0 ? (
+                              <div className="flex flex-wrap gap-1">
+                                {platform.competitors.map((comp, k) => (
+                                  <span key={k} className="bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded text-[10px] border border-gray-200">
+                                    {comp}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-gray-400">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-600 italic align-top">
+                            {platform.snippet}
+                          </td>
+                        </tr>
+                      ))}
+                    </React.Fragment>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            
+            <div className="mt-6 flex justify-end shrink-0">
+              <button
+                onClick={() => setHistoryModalOpen(false)}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-bold hover:bg-gray-200 transition-colors"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>
