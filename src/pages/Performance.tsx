@@ -534,10 +534,10 @@ export default function Performance() {
         <h1 className="text-2xl font-bold text-gray-900">Performance Center</h1>
         
         <div className="flex items-center gap-3">
-          <div className="flex bg-gray-100 p-1 rounded-xl">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
+            <div className="flex bg-gray-100 p-1 rounded-xl">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={clsx(
                   "px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all",
