@@ -70,3 +70,11 @@
     @apply w-full px-4 py-3 border-2 border-gray-300 rounded-md text-sm text-black bg-white transition-all duration-150 outline-none focus:border-black focus:shadow-[0_0_0_3px_rgba(10,10,10,0.08)];
   }
 }
+
+/* Hide Trae preview badge overlay */
+@layer base {
+  #trae-badge-plugin,
+  .trae-badge {
+    display: none !important;
+  }
+}

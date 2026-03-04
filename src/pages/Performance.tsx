@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useUserStore } from '../store/useUserStore';
 import { useLayoutStore } from '../store/useLayoutStore';
 import { 
@@ -12,6 +12,7 @@ import {
   ExternalLink,
   Clock,
   Info,
+  HelpCircle,
   Save,
   ChevronDown,
   ChevronRight,
@@ -64,11 +65,13 @@ interface KeywordGroup {
 }
 
 export default function Performance() {
-  const { role, isGA4Connected, setGA4Connected } = useUserStore();
+  const { role, isGA4Connected, setGA4Connected, setRole } = useUserStore();
   const { setChatOpen, setSidebarCollapsed, setInitialMessage } = useLayoutStore();
   const [activeTab, setActiveTab] = useState<TabId>('data');
+  const ga4SectionRef = useRef<HTMLDivElement | null>(null);
   const [timeRange, setTimeRange] = useState('7d');
   const [timeMenuOpen, setTimeMenuOpen] = useState(false);
+  const [chartSettingsOpen, setChartSettingsOpen] = useState(false);
   const [isCustomRange, setIsCustomRange] = useState(false);
   const [customStartDate, setCustomStartDate] = useState<string>('');
   const [customEndDate, setCustomEndDate] = useState<string>('');
@@ -111,7 +114,7 @@ export default function Performance() {
   }, [visConfigOpen, visFrequency, visPlatforms]);
   const [expandedKeywords, setExpandedKeywords] = useState<string[]>(['k1', 'k2']);
   const [selectedCell, setSelectedCell] = useState<{keyword: string, query: string, platform: string, status: string} | null>(null);
-  const lastUpdated = new Date().toLocaleString('en-US', { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit' });
+  const lastUpdated = new Date().toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
 
   // Keyword Management State
   const [keywords, setKeywords] = useState<{id: string, term: string, queries: string[]}[]>([
@@ -122,13 +125,6 @@ export default function Performance() {
   const [editingKeyword, setEditingKeyword] = useState<string | null>(null);
   const [newKeyword, setNewKeyword] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
-  const [ga4Selection, setGa4Selection] = useState<'yes' | 'no' | null>(null);
-  const [sitePlatform, setSitePlatform] = useState<string>('');
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalTitle, setModalTitle] = useState('');
-  const [modalBody, setModalBody] = useState('');
-  const [modalLink, setModalLink] = useState<string | null>(null);
-  const [isGeneratingCode, setIsGeneratingCode] = useState(false);
   
   // removed toast UI; keep no local toast state
   const [gaDebugOpen, setGaDebugOpen] = useState(false);
@@ -137,31 +133,22 @@ export default function Performance() {
 
   
 
-  const handleConfirmPlatform = () => {
-    if (!sitePlatform) return;
-    if (sitePlatform === 'Custom Site') {
-      setModalTitle('Custom site integration');
-      setModalBody('Use the JF guide to register and upload your code.');
-      setModalLink('https://vxqhv8tzaua.feishu.cn/wiki/FVSOwGJG1i1wY3kqNt3ctEUhnmc');
-      setIsGeneratingCode(false);
-    } else {
-      setModalTitle(`Connect GA4 via ${sitePlatform}`);
-      setModalBody('Follow the official steps in your platform admin to connect GA4.');
-      setModalLink('https://support.google.com/analytics/answer/9304153?hl=en');
-      setIsGeneratingCode(false);
-    }
-  };
+  const [isEditMode, setIsEditMode] = useState(false);
   
   
   // Debug State
   const [hasKeywords, setHasKeywords] = useState(true);
   const [setupKeywords, setSetupKeywords] = useState<{id: string, term: string}[]>([]); // New Setup Mode state
   const [activeMetric, setActiveMetric] = useState<'visibility' | 'sentiment' | 'position'>('visibility');
+  const [activeTrafficSource, setActiveTrafficSource] = useState<'organic' | 'ai' | 'social'>('organic');
+  const trafficTitleMap = { organic: 'ORGANIC', ai: 'AI Search', social: 'Social Media' };
   const [chatInput, setChatInput] = useState('');
   const [showChatSuggestions, setShowChatSuggestions] = useState(false);
+  const [trafficSettingsOpen, setTrafficSettingsOpen] = useState(false);
+  const [trafficJFChoice, setTrafficJFChoice] = useState<'has' | 'no' | null>(null);
 
   // Mock Data for Query Attribution
-  const attributionData: KeywordGroup[] = [
+  const initialAttributionData: KeywordGroup[] = [
     {
       id: 'k1',
       keyword: 'Best AI Dashboard',
@@ -188,6 +175,19 @@ export default function Performance() {
       ]
     },
   ];
+  const [attributionData, setAttributionData] = useState<KeywordGroup[]>(initialAttributionData);
+  const [dataDraft, setDataDraft] = useState<KeywordGroup[] | null>(null);
+  const [hasDraftChanges, setHasDraftChanges] = useState(false);
+  const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
+  const [editingGroupValue, setEditingGroupValue] = useState('');
+  const [editingQueryId, setEditingQueryId] = useState<string | null>(null);
+  const [editingQueryValue, setEditingQueryValue] = useState('');
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isSaveConfirmOpen, setIsSaveConfirmOpen] = useState(false);
+  const [newGroupTerm, setNewGroupTerm] = useState('');
+  const [newQueryInput, setNewQueryInput] = useState('');
+  const [newQueries, setNewQueries] = useState<{ id: string; text: string }[]>([]);
+  const updateIntervalDays = 3;
 
   const platforms: { id: PlatformId; label: string; icon: LucideIcon }[] = [
     { id: 'ChatGPT', label: 'ChatGPT', icon: MessageSquare },
@@ -196,6 +196,136 @@ export default function Performance() {
     { id: 'Gemini', label: 'Gemini', icon: MessageSquare },
     { id: 'SearchGPT', label: 'SearchGPT', icon: MessageSquare }
   ];
+  const makeDraft = (data: KeywordGroup[]) => data.map(g => ({
+    ...g,
+    queries: g.queries.map(q => ({
+      ...q,
+      platforms: { ...q.platforms },
+      positions: q.positions ? { ...q.positions } : undefined
+    }))
+  }));
+  useEffect(() => {
+    if (isEditMode) {
+      setDataDraft(makeDraft(attributionData));
+      setHasDraftChanges(false);
+      setEditingGroupId(null);
+      setEditingQueryId(null);
+    } else {
+      setDataDraft(null);
+      setEditingGroupId(null);
+      setEditingQueryId(null);
+    }
+  }, [isEditMode, attributionData]);
+  const handleStartEditGroup = (group: KeywordGroup) => {
+    setEditingGroupId(group.id);
+    setEditingGroupValue(group.keyword);
+  };
+  const handleApplyEditGroup = () => {
+    if (!dataDraft || !editingGroupId) return;
+    const val = editingGroupValue.trim();
+    if (!val) return;
+    setDataDraft(dataDraft.map(g => g.id === editingGroupId ? { ...g, keyword: val } : g));
+    setHasDraftChanges(true);
+    setEditingGroupId(null);
+    setEditingGroupValue('');
+  };
+  const handleDeleteGroup = (groupId: string) => {
+    if (!dataDraft) return;
+    setDataDraft(dataDraft.filter(g => g.id !== groupId));
+    setHasDraftChanges(true);
+    if (editingGroupId === groupId) {
+      setEditingGroupId(null);
+      setEditingGroupValue('');
+    }
+  };
+  const handleStartEditQuery = (query: Query) => {
+    setEditingQueryId(query.id);
+    setEditingQueryValue(query.text);
+  };
+  const handleApplyEditQuery = (groupId: string) => {
+    if (!dataDraft || !editingQueryId) return;
+    const val = editingQueryValue.trim();
+    if (!val) return;
+    setDataDraft(dataDraft.map(g => {
+      if (g.id !== groupId) return g;
+      return {
+        ...g,
+        queries: g.queries.map(q => q.id === editingQueryId ? { ...q, text: val } : q)
+      };
+    }));
+    setHasDraftChanges(true);
+    setEditingQueryId(null);
+    setEditingQueryValue('');
+  };
+  const handleDeleteQuery = (groupId: string, queryId: string) => {
+    if (!dataDraft) return;
+    setDataDraft(dataDraft.map(g => {
+      if (g.id !== groupId) return g;
+      return { ...g, queries: g.queries.filter(q => q.id !== queryId) };
+    }));
+    setHasDraftChanges(true);
+    if (editingQueryId === queryId) {
+      setEditingQueryId(null);
+      setEditingQueryValue('');
+    }
+  };
+  const handleAddModalOpen = () => {
+    setIsAddModalOpen(true);
+    setNewGroupTerm('');
+    setNewQueryInput('');
+    setNewQueries([]);
+  };
+  const handleAddNewQuery = () => {
+    const t = newQueryInput.trim();
+    if (!t) return;
+    if (newQueries.find(q => q.text === t)) return;
+    setNewQueries([...newQueries, { id: `tmpq-${Date.now()}-${Math.random()}`, text: t }]);
+    setNewQueryInput('');
+  };
+  const handleRemoveNewQuery = (id: string) => {
+    setNewQueries(newQueries.filter(q => q.id !== id));
+  };
+  const handleConfirmAddGroup = () => {
+    if (!dataDraft) return;
+    const term = newGroupTerm.trim();
+    if (!term || newQueries.length === 0) return;
+    const newGroup: KeywordGroup = {
+      id: `k${Date.now()}-${Math.random()}`,
+      keyword: term,
+      queries: newQueries.map(q => ({
+        id: `q-${Date.now()}-${Math.random()}`,
+        text: q.text,
+        platforms: {},
+        positions: undefined
+      }))
+    };
+    setDataDraft([...dataDraft, newGroup]);
+    setHasDraftChanges(true);
+    setIsAddModalOpen(false);
+  };
+  const handleSaveDraft = () => {
+    if (!dataDraft) return;
+    setAttributionData(makeDraft(dataDraft));
+    setHasDraftChanges(false);
+  };
+  const handleConfirmSaveNow = () => {
+    handleSaveDraft();
+    setIsSaveConfirmOpen(false);
+    setIsEditMode(false);
+  };
+  const handleConfirmSaveAuto = () => {
+    handleSaveDraft();
+    setIsSaveConfirmOpen(false);
+    setIsEditMode(false);
+  };
+  const handleDiscardDraft = () => {
+    setDataDraft(makeDraft(attributionData));
+    setHasDraftChanges(false);
+    setEditingGroupId(null);
+    setEditingGroupValue('');
+    setEditingQueryId(null);
+    setEditingQueryValue('');
+  };
 
   const toggleKeyword = (id: string) => {
     setExpandedKeywords(prev => 
@@ -332,7 +462,12 @@ export default function Performance() {
              <h2 className="text-2xl font-bold text-gray-900 mb-2">Data Source Not Connected</h2>
              <p className="text-gray-500 mb-6">Please connect your GA4 account to start tracking performance data.</p>
              <button 
-               onClick={() => setActiveTab('setting')}
+               onClick={() => {
+                 setActiveTab('setting');
+                 setTimeout(() => {
+                   ga4SectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+                 }, 50);
+               }}
                className="w-full bg-primary text-white py-3 rounded-xl font-bold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
              >
                Connect GA4 <ArrowRight size={18} />
@@ -350,23 +485,24 @@ export default function Performance() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Performance Center</h1>
         
-        {/* Tabs */}
-        <div className="flex bg-gray-100 p-1 rounded-xl">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={clsx(
-                "px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all",
-                activeTab === tab.id 
-                  ? "bg-white text-primary shadow-sm" 
-                  : "text-gray-500 hover:text-gray-900"
-              )}
-            >
-              <tab.icon size={16} />
-              {tab.label}
-            </button>
-          ))}
+        <div className="flex items-center gap-3">
+          <div className="flex bg-gray-100 p-1 rounded-xl">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={clsx(
+                  "px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all",
+                  activeTab === tab.id 
+                    ? "bg-white text-primary shadow-sm" 
+                    : "text-gray-500 hover:text-gray-900"
+                )}
+              >
+                <tab.icon size={16} />
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -451,17 +587,16 @@ export default function Performance() {
       )}
 
       {/* Main Content Area - Darker Background for Contrast */}
-      <>
+      <div>
         {/* Overlay for Free/Pending states */}
-        {role === 'free' && renderContent()}
+        {(role === 'free' || role === 'pending') && renderContent()}
 
         {/* Tab Content */}
         {activeTab === 'data' && (
-          <>
-          <div className={clsx(role === 'free' && "filter blur-sm select-none pointer-events-none")}>
+          <div className={clsx((role === 'free' || role === 'pending') && "filter blur-sm select-none pointer-events-none")}>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
               {/* Left Column: Traffic Analytics */}
-              <div className="space-y-6">
+              <div className={clsx("space-y-6", (role === 'free' || role === 'pending') && "filter blur-sm select-none pointer-events-none")}>
                 <div className="flex items-start gap-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
@@ -469,64 +604,81 @@ export default function Performance() {
                         <BarChart2 size={20} />
                       </div>
                       <h3 className="font-bold text-gray-900 text-lg">Traffic Sources</h3>
+                      <button
+                        onClick={() => setTrafficSettingsOpen(true)}
+                        className="ml-2 p-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50"
+                        title="Traffic Source Settings"
+                      >
+                        <Settings size={16} />
+                      </button>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-1 flex items-center gap-1">
-                  <button
-                    onClick={() => setGA4Connected(true)}
-                    className={clsx(
-                      "px-2 py-0.5 rounded text-[10px] font-bold transition-colors border border-gray-200",
-                      isGA4Connected ? "bg-green-50 text-green-700" : "bg-white text-gray-500 hover:text-gray-700"
-                    )}
-                  >
-                    Connected
-                  </button>
-                  <button
-                    onClick={() => setGA4Connected(false)}
-                    className={clsx(
-                      "px-2 py-0.5 rounded text-[10px] font-bold transition-colors border border-gray-200",
-                      !isGA4Connected ? "bg-red-50 text-red-700" : "bg-white text-gray-500 hover:text-gray-700"
-                    )}
-                  >
-                    Unconnected
-                  </button>
-                </div>
+                <div className="text-[11px] text-gray-400 mb-2">Last updated: {lastUpdated}</div>
 
                 <div className="grid grid-cols-3 gap-4">
-                  <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                  <div 
+                    onClick={() => setActiveTrafficSource('organic')}
+                    className={clsx(
+                      "bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer",
+                      activeTrafficSource === 'organic' && "ring-2 ring-blue-400 border-blue-200 shadow-md"
+                    )}
+                  >
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                      <div className="text-xs text-gray-500 font-bold uppercase tracking-wider">Organic</div>
+                      <div className="inline-flex items-center gap-1">
+                        <div className="text-xs text-gray-500 font-bold uppercase tracking-wider">ORGANIC</div>
+                        <span className="relative group inline-flex items-center">
+                          <HelpCircle size={12} className="text-gray-400" />
+                          <span className="absolute top-full left-0 mt-1 hidden group-hover:block bg-black text-white text-[10px] px-2 py-1 rounded shadow">占位</span>
+                        </span>
+                      </div>
                     </div>
-                    <div className="text-2xl font-bold text-gray-900 tracking-tight">{isGA4Connected ? '12,500' : '?'}</div>
-                    <div className="text-[10px] text-gray-400 mt-1 font-medium">{isGA4Connected ? 'Source: GA4' : 'Connect GA4 to view'}</div>
+                    <div className="text-2xl font-bold text-gray-900 tracking-tight">{(!isGA4Connected || role === 'pending') ? '?' : '12,500'}</div>
+                    
                   </div>
-                  <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                  <div 
+                    onClick={() => setActiveTrafficSource('ai')}
+                    className={clsx(
+                      "bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer",
+                      activeTrafficSource === 'ai' && "ring-2 ring-green-400 border-green-200 shadow-md"
+                    )}
+                  >
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                      <div className="text-xs text-gray-500 font-bold uppercase tracking-wider">AI Direct</div>
+                      <div className="inline-flex items-center gap-1">
+                        <div className="text-xs text-gray-500 font-bold uppercase tracking-wider">AI SEARCH</div>
+                        <span className="relative group inline-flex items-center">
+                          <HelpCircle size={12} className="text-gray-400" />
+                          <span className="absolute top-full left-0 mt-1 hidden group-hover:block bg-black text-white text-[10px] px-2 py-1 rounded shadow">占位</span>
+                        </span>
+                      </div>
                     </div>
-                    <div className="text-2xl font-bold text-gray-900 tracking-tight">{isGA4Connected ? '1,200' : '?'}</div>
-                    <div className={clsx("text-[10px] font-bold mt-1 px-1.5 py-0.5 rounded w-fit", isGA4Connected ? "text-green-600 bg-green-50" : "text-gray-400 bg-gray-50")}>
-                      {isGA4Connected ? '15% of total' : 'Awaiting link'}
-                    </div>
+                    <div className="text-2xl font-bold text-gray-900 tracking-tight">{(!isGA4Connected || role === 'pending') ? '?' : '1,200'}</div>
+                    
                   </div>
-                  <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                  <div 
+                    onClick={() => setActiveTrafficSource('social')}
+                    className={clsx(
+                      "bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer",
+                      activeTrafficSource === 'social' && "ring-2 ring-purple-400 border-purple-200 shadow-md"
+                    )}
+                  >
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-2 h-2 rounded-full bg-purple-500"></div>
-                      <div className="text-xs text-gray-500 font-bold uppercase tracking-wider">Social</div>
+                      <div className="inline-flex items-center gap-1">
+                        <div className="text-xs text-gray-500 font-bold uppercase tracking-wider">SOCIAL MEDIA</div>
+                        <span className="relative group inline-flex items-center">
+                          <HelpCircle size={12} className="text-gray-400" />
+                          <span className="absolute top-full left-0 mt-1 hidden group-hover:block bg-black text-white text-[10px] px-2 py-1 rounded shadow">占位</span>
+                        </span>
+                      </div>
                     </div>
-                    <div className="text-2xl font-bold text-gray-900 tracking-tight">{isGA4Connected ? '850' : '?'}</div>
-                    <div className={clsx("text-[10px] font-bold mt-1 px-1.5 py-0.5 rounded w-fit", isGA4Connected ? "text-purple-600 bg-purple-50" : "text-gray-400 bg-gray-50")}>
-                      {isGA4Connected ? '8% of total' : 'Awaiting link'}
-                    </div>
+                    <div className="text-2xl font-bold text-gray-900 tracking-tight">{(!isGA4Connected || role === 'pending') ? '?' : '850'}</div>
+                    
                   </div>
                 </div>
-
-                
-
                 <div className="h-[300px] w-full bg-white border border-gray-200 rounded-2xl p-6 shadow-sm relative overflow-hidden">
                   <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-green-500 to-purple-500 opacity-20"></div>
                   <div className="flex items-center justify-between mb-6 relative z-10">
@@ -534,9 +686,11 @@ export default function Performance() {
                       <div className="p-1.5 rounded-lg bg-blue-100 text-blue-600">
                         <BarChart2 size={16} />
                       </div>
-                      Traffic Sources
+                      {trafficTitleMap[activeTrafficSource]}
+                      
                     </h4>
                     <div className="relative flex items-center gap-2">
+                      
                       <button
                         onClick={() => setTimeMenuOpen((v) => !v)}
                         className="text-xs font-medium border border-gray-200 bg-gray-50 rounded-lg px-3 py-1.5 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 text-gray-700 transition-all cursor-pointer hover:bg-white hover:shadow-sm"
@@ -544,21 +698,7 @@ export default function Performance() {
                       >
                         {getTimeRangeLabel()}
                       </button>
-                      <button
-                        onClick={() => {
-                          setModalTitle('Connect GA4');
-                          setModalBody('Please choose your site platform');
-                          setModalLink(null);
-                          setGa4Selection('no');
-                          setSitePlatform('');
-                          setIsGeneratingCode(false);
-                          setIsModalOpen(true);
-                        }}
-                        className="p-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50"
-                        title="Connect GA4"
-                      >
-                        <Settings size={16} />
-                      </button>
+                      
                       {timeMenuOpen && (
                         <div className="absolute top-full right-0 mt-2 w-64 bg-white border border-gray-200 rounded-xl shadow-lg z-30">
                           <div className="py-2 max-h-64 overflow-y-auto">
@@ -641,28 +781,20 @@ export default function Performance() {
                           )}
                         </div>
                       )}
+                      
+                      
+                  </div>
+                  {(!isGA4Connected || role === 'pending') && (
+                    <div className="absolute inset-0 bg-white/70 backdrop-blur-sm flex items-center justify-center z-20">
                       <button
-                        onClick={() => {
-                          if (isGA4Connected) {
-                            setModalTitle('Change GA4 account');
-                            setModalBody('Do you want to change the linked GA4 account?');
-                          } else {
-                            setModalTitle('Connect GA4');
-                            setModalBody('Do you have a GA4 account?');
-                          }
-                          setModalLink(null);
-                          setGa4Selection(null);
-                          setSitePlatform('');
-                          setIsGeneratingCode(false);
-                          setIsModalOpen(true);
-                        }}
-                        className="p-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50"
-                        title="Connect GA4"
+                        onClick={() => setTrafficSettingsOpen(true)}
+                        className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 shadow-lg active:scale-95 flex items-center gap-2"
                       >
-                        <Settings size={16} />
+                        <Settings size={16} /> 关联我的 Google Analytics 账号
                       </button>
                     </div>
-                  </div>
+                  )}
+                  <div className="text-[11px] text-gray-400 mb-2">Last updated: {lastUpdated}</div>
                   
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
@@ -674,10 +806,15 @@ export default function Performance() {
                         contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '12px', padding: '12px' }}
                         cursor={{ stroke: '#cbd5e1', strokeWidth: 1, strokeDasharray: '4 4' }}
                       />
-                      <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '12px', fontWeight: 500 }} iconType="circle" />
-                      <Line yAxisId="left" type="monotone" dataKey="organic" name="Total Traffic" stroke="#3b82f6" strokeWidth={3} dot={false} activeDot={{ r: 6, strokeWidth: 0 }} />
-                      <Line yAxisId="right" type="monotone" dataKey="ai" name="AI Traffic" stroke="#10b981" strokeWidth={3} dot={false} />
-                      <Line yAxisId="right" type="monotone" dataKey="social" name="Social Traffic" stroke="#8b5cf6" strokeWidth={3} dot={false} />
+                      {activeTrafficSource === 'organic' && (
+                        <Line yAxisId="left" type="monotone" dataKey="organic" name="Total Traffic" stroke="#3b82f6" strokeWidth={3} dot={false} activeDot={{ r: 6, strokeWidth: 0 }} />
+                      )}
+                      {activeTrafficSource === 'ai' && (
+                        <Line yAxisId="right" type="monotone" dataKey="ai" name="AI Traffic" stroke="#10b981" strokeWidth={3} dot={false} />
+                      )}
+                      {activeTrafficSource === 'social' && (
+                        <Line yAxisId="right" type="monotone" dataKey="social" name="Social Traffic" stroke="#8b5cf6" strokeWidth={3} dot={false} />
+                      )}
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -689,6 +826,7 @@ export default function Performance() {
                   <Zap className="text-orange-500" size={20} />
                   AI Visibility
                 </h3>
+                <div className="text-[11px] text-gray-400">Last updated: {lastUpdated}</div>
                 
                 <div className="grid grid-cols-3 gap-4 h-[140px]">
                   <div 
@@ -705,19 +843,18 @@ export default function Performance() {
                          <div className={clsx("p-2 rounded-lg transition-colors", activeMetric === 'visibility' ? "bg-orange-50 text-orange-600" : "bg-gray-50 text-gray-400 group-hover:bg-orange-50 group-hover:text-orange-600")}>
                            <Zap size={18} />
                          </div>
-                         <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Visibility</span>
+                         <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">VISIBILITY</span>
+                         <span className="relative group inline-flex items-center">
+                           <HelpCircle size={12} className="text-gray-400" />
+                           <span className="absolute top-full left-0 mt-1 hidden group-hover:block bg-black text-white text-[10px] px-2 py-1 rounded shadow">占位</span>
+                         </span>
                        </div>
                        {activeMetric === 'visibility' && <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></div>}
                     </div>
                     
                     <div className="relative z-10 mt-2">
                       <div className="text-3xl font-bold text-gray-900 tracking-tight">{isVisibilityActive ? <>72<span className="text-lg text-gray-400 font-medium">/100</span></> : '?'}</div>
-                      <div className="flex items-center gap-2 mt-2">
-                        <span className="bg-green-50 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 border border-green-100">
-                          <TrendingUp size={10} /> +5.2%
-                        </span>
-                        <span className="text-[10px] text-gray-400">vs last week</span>
-                      </div>
+                      
                     </div>
                     
                     {/* Decor */}
@@ -738,19 +875,18 @@ export default function Performance() {
                          <div className={clsx("p-2 rounded-lg transition-colors", activeMetric === 'sentiment' ? "bg-indigo-50 text-indigo-600" : "bg-gray-50 text-gray-400 group-hover:bg-indigo-50 group-hover:text-indigo-600")}>
                            <MessageSquare size={18} />
                          </div>
-                         <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Sentiment</span>
+                         <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">SENTIMENT</span>
+                         <span className="relative group inline-flex items-center">
+                           <HelpCircle size={12} className="text-gray-400" />
+                           <span className="absolute top-full left-0 mt-1 hidden group-hover:block bg-black text-white text-[10px] px-2 py-1 rounded shadow">占位</span>
+                         </span>
                        </div>
                        {activeMetric === 'sentiment' && <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></div>}
                     </div>
 
                     <div className="relative z-10 mt-2">
                       <div className="text-3xl font-bold text-gray-900 tracking-tight">{isVisibilityActive ? '85%' : '?'}</div>
-                      <div className="flex items-center gap-2 mt-2">
-                        <span className="bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 border border-indigo-100">
-                          Positive
-                        </span>
-                        <span className="text-[10px] text-gray-400">Consistent</span>
-                      </div>
+                      
                     </div>
 
                     {/* Decor */}
@@ -771,18 +907,16 @@ export default function Performance() {
                          <div className={clsx("p-2 rounded-lg transition-colors", activeMetric === 'position' ? "bg-purple-50 text-purple-600" : "bg-gray-50 text-gray-400 group-hover:bg-purple-50 group-hover:text-purple-600")}>
                            <Target size={18} />
                          </div>
-                         <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Position</span>
+                         <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">POSITION</span>
+                         <span className="relative group inline-flex items-center">
+                           <HelpCircle size={12} className="text-gray-400" />
+                           <span className="absolute top-full left-0 mt-1 hidden group-hover:block bg-black text-white text-[10px] px-2 py-1 rounded shadow">占位</span>
+                         </span>
                        </div>
                        {activeMetric === 'position' && <div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></div>}
                     </div>
                     <div className="relative z-10 mt-2">
-                      <div className="text-3xl font-bold text-gray-900 tracking-tight">#2.8</div>
-                      <div className="flex items-center gap-2 mt-2">
-                        <span className="bg-purple-50 text-purple-700 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 border border-purple-100">
-                          Average Rank
-                        </span>
-                        <span className="text-[10px] text-gray-400">lower is better</span>
-                      </div>
+                      <div className="text-3xl font-bold text-gray-900 tracking-tight">{isVisibilityActive ? '#2.8' : '?'}</div>
                     </div>
                     <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-purple-50 rounded-full blur-2xl opacity-50 group-hover:opacity-100 transition-opacity"></div>
                   </div>
@@ -796,6 +930,7 @@ export default function Performance() {
                         {activeMetric === 'visibility' ? <TrendingUp size={16} /> : <MessageSquare size={16} />}
                       </div>
                       {activeMetric === 'visibility' ? 'Visibility Trend' : activeMetric === 'sentiment' ? 'Sentiment Trend' : 'Position Trend'}
+                      
                     </h4>
                     <div className="relative flex items-center gap-2">
                       <select className="text-xs font-medium border border-gray-200 bg-gray-50 rounded-lg px-3 py-1.5 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 text-gray-700 transition-all cursor-pointer hover:bg-white hover:shadow-sm">
@@ -859,7 +994,7 @@ export default function Performance() {
                       const missingWidthPct = missingStartIndex >= 0 ? ((chartData.length - missingStartIndex) / chartData.length) * 100 : 0;
                       return (
                         <>
-                          {missingStartIndex >= 0 && (
+                          {missingStartIndex >= 0 && role !== 'pending' && (
                             <div
                               className="absolute top-0 bottom-0 right-0 bg-gray-100/70 z-20 pointer-events-none"
                               style={{ left: `${missingLeftPct}%`, width: `${missingWidthPct}%` }}
@@ -920,12 +1055,129 @@ export default function Performance() {
           </div>
           
           <div className="mt-8 space-y-8"></div>
-          </>
         )}
-      </>
+        {isEditMode && isSaveConfirmOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/30" onClick={() => { setIsSaveConfirmOpen(false); setIsEditMode(false); }}></div>
+            <div className="relative bg-white w-full max-w-md rounded-2xl shadow-2xl border border-gray-200 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-lg">Save Confirmation</h3>
+                <button
+                  onClick={() => { setIsSaveConfirmOpen(false); setIsEditMode(false); }}
+                  className="p-2 rounded-full hover:bg-gray-100 text-gray-500"
+                  title="Close"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+              <p className="text-sm text-gray-600 mb-4">We will monitor AI visibility of these items.</p>
+              <div className="space-y-3">
+                <button
+                  onClick={handleConfirmSaveNow}
+                  className="w-full bg-black text-white py-2.5 rounded-lg font-bold hover:bg-gray-800 transition-colors"
+                >
+                  Update Data Now (approx XXX tickets)
+                </button>
+                <button
+                  onClick={handleConfirmSaveAuto}
+                  className="w-full bg-white border border-gray-300 text-gray-700 py-2.5 rounded-lg font-bold hover:bg-gray-50 transition-colors"
+                >
+                  Auto-Update Later
+                </button>
+                <div className="text-[11px] text-gray-400 text-center">
+                  Currently updates every {updateIntervalDays} days, next update {new Date(Date.now() + updateIntervalDays * 24 * 60 * 60 * 1000).toLocaleDateString()}
+                </div>
+                <button
+                  onClick={() => { handleDiscardDraft(); setIsSaveConfirmOpen(false); setIsEditMode(false); }}
+                  className="w-full text-red-600 font-bold py-2.5 rounded-lg hover:bg-red-50 transition-colors"
+                >
+                  Cancel This Change (revert to original preview state)
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        {trafficSettingsOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div
+              className="absolute inset-0 bg-black/30"
+              onClick={() => {
+                setTrafficSettingsOpen(false);
+                setTrafficJFChoice(null);
+              }}
+            ></div>
+            <div className="relative bg-white w-full max-w-md rounded-2xl shadow-2xl border border-gray-200 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-lg">关联 Google Analytics</h3>
+                <button
+                  onClick={() => {
+                    setTrafficSettingsOpen(false);
+                    setTrafficJFChoice(null);
+                  }}
+                  className="p-2 rounded-full hover:bg-gray-100 text-gray-500"
+                  title="Close"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+              {!trafficJFChoice && (
+                <div className="space-y-3">
+                  <button
+                    onClick={() => setTrafficJFChoice('has')}
+                    className="w-full bg-black text-white py-2.5 rounded-lg font-bold hover:bg-gray-800 transition-colors"
+                  >
+                    我已有 Google Analytics 账号
+                  </button>
+                  <button
+                    onClick={() => setTrafficJFChoice('no')}
+                    className="w-full bg-white border border-gray-300 text-gray-700 py-2.5 rounded-lg font-bold hover:bg-gray-50 transition-colors"
+                  >
+                    我没有 Google Analytics 账号
+                  </button>
+                </div>
+              )}
+              {trafficJFChoice === 'has' && (
+                <div className="space-y-4">
+                  <div className="text-sm text-gray-600">
+                    将跳转到 Google Analytics 登录完成授权连接。
+                  </div>
+                  <button
+                    onClick={() => { window.open('https://analytics.google.com/', '_blank'); }}
+                    className="w-full bg-primary text-white py-2.5 rounded-lg font-bold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <ExternalLink size={16} /> 去连接 Google Analytics
+                  </button>
+                </div>
+              )}
+              {trafficJFChoice === 'no' && (
+                <div className="space-y-4">
+                  <div className="text-sm text-gray-600">
+                    您可以先创建 Google Analytics 账号，并完成网站绑定（安装 GA 代码）。
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => window.open('https://support.google.com/analytics/answer/9304153', '_blank')}
+                      className="flex-1 bg-white border border-gray-300 text-gray-700 py-2.5 rounded-lg font-bold hover:bg-gray-50 transition-colors"
+                    >
+                      了解 GA
+                    </button>
+                    <button
+                      onClick={() => window.open('https://analytics.google.com/', '_blank')}
+                      className="flex-1 bg-black text-white py-2.5 rounded-lg font-bold hover:bg-gray-800 transition-colors"
+                    >
+                      去注册 GA
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+        
+      </div>
 
         {activeTab === 'query' && (
-           <div className={clsx((role === 'free' || role === 'pending') && "filter blur-sm select-none pointer-events-none")}>
+           <div className={clsx(role === 'free' && "filter blur-sm select-none pointer-events-none")}>
                <div className="flex items-center justify-between mb-4 relative z-10">
                  <h4 className="font-bold text-gray-900 flex items-center gap-2">
                    <div className="p-1.5 rounded-lg bg-indigo-100 text-indigo-600">
@@ -933,12 +1185,12 @@ export default function Performance() {
                    </div>
                    Query Attribution
                  </h4>
-                <div className="relative flex items-center gap-2"></div>
+                
                </div>
                <div className="flex justify-between items-center mb-2">
                  <div className="text-xs text-gray-400">Last updated: {lastUpdated}</div>
                </div>
-               <div className="overflow-x-auto">
+               <div className={clsx("overflow-x-auto", isEditMode && "ring-1 ring-purple-300 rounded-xl")}>
                  <table className="w-full text-left border-collapse">
                  <thead>
                   <tr className="border-b border-gray-100">
@@ -950,7 +1202,7 @@ export default function Performance() {
                   </tr>
                  </thead>
                  <tbody>
-                 {attributionData.map(group => {
+                 {(isEditMode && dataDraft ? dataDraft : attributionData).map(group => {
                    let gMentioned = 0;
                    let gNegative = 0;
                    let gTotal = 0;
@@ -990,10 +1242,41 @@ export default function Performance() {
                           <div className="grid grid-cols-[minmax(300px,1fr)_180px_120px_140px_120px] items-center gap-3">
                             <div className="flex items-center gap-2">
                               {expandedKeywords.includes(group.id) ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                              {group.keyword}
-                              <span className="text-xs font-normal text-gray-400 ml-2">({group.queries.length} queries)</span>
+                              {isEditMode && editingGroupId === group.id ? (
+                                <input
+                                  value={editingGroupValue}
+                                  onChange={(e) => setEditingGroupValue(e.target.value)}
+                                  onBlur={handleApplyEditGroup}
+                                  onKeyDown={(e) => { if (e.key === 'Enter') handleApplyEditGroup(); }}
+                                  className="px-2 py-1 border border-gray-300 rounded-md text-sm"
+                                />
+                              ) : (
+                                <>
+                                  {group.keyword}
+                                  <span className="text-xs font-normal text-gray-400 ml-2">({group.queries.length} queries)</span>
+                                </>
+                              )}
                             </div>
-                            <div></div>
+                            <div className="flex items-center gap-2 justify-end">
+                              {isEditMode && (
+                                <>
+                                  <button
+                                    className="p-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50"
+                                    onClick={() => handleStartEditGroup(group)}
+                                    title="Edit group"
+                                  >
+                                    <Edit2 size={14} />
+                                  </button>
+                                  <button
+                                    className="p-1.5 border border-gray-200 rounded-lg text-red-600 hover:bg-red-50"
+                                    onClick={() => handleDeleteGroup(group.id)}
+                                    title="Delete group"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </>
+                              )}
+                            </div>
                             <div>
                               <span className={clsx(
                                 "text-[10px] font-bold px-2 py-0.5 rounded-full border",
@@ -1066,7 +1349,37 @@ export default function Performance() {
                                isRowSelected ? "bg-blue-50/50" : "hover:bg-blue-50/30"
                              )}>
                                <td className="p-4 pl-12 text-sm text-gray-600 font-medium border-r border-gray-50 align-middle">
-                                 {query.text}
+                                 {isEditMode && editingQueryId === query.id ? (
+                                   <input
+                                     value={editingQueryValue}
+                                     onChange={(e) => setEditingQueryValue(e.target.value)}
+                                     onBlur={() => handleApplyEditQuery(group.id)}
+                                     onKeyDown={(e) => { if (e.key === 'Enter') handleApplyEditQuery(group.id); }}
+                                     className="w-full px-2 py-1 border border-gray-300 rounded-md text-sm"
+                                   />
+                                 ) : (
+                                   <div className="flex items-center justify-between">
+                                     <span>{query.text}</span>
+                                     {isEditMode && (
+                                       <div className="flex items-center gap-1 ml-2">
+                                         <button
+                                           className="p-1 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50"
+                                           onClick={() => handleStartEditQuery(query)}
+                                           title="Edit query"
+                                         >
+                                           <Edit2 size={12} />
+                                         </button>
+                                         <button
+                                           className="p-1 border border-gray-200 rounded-lg text-red-600 hover:bg-red-50"
+                                           onClick={() => handleDeleteQuery(group.id, query.id)}
+                                           title="Delete query"
+                                         >
+                                           <Trash2 size={12} />
+                                         </button>
+                                       </div>
+                                     )}
+                                   </div>
+                                 )}
                                </td>
                               {/* AI Platforms */}
                               <td className="p-4 align-middle">
@@ -1343,7 +1656,115 @@ export default function Performance() {
                  </tbody>
                </table>
              </div>
+            {isEditMode && (
+              <div className="mt-4 flex justify-between items-center gap-3">
+                <button
+                  onClick={handleAddModalOpen}
+                  className="px-6 py-3 min-w-[220px] bg-black text-white rounded-xl font-bold flex items-center gap-2 hover:bg-gray-800"
+                >
+                  <Plus size={16} /> + ADD
+                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setIsSaveConfirmOpen(true)}
+                    disabled={!hasDraftChanges}
+                    className={clsx(
+                      "px-4 py-3 rounded-xl font-bold flex items-center gap-2 transition-all",
+                      hasDraftChanges ? "bg-black text-white hover:bg-gray-800" : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                    )}
+                  >
+                    <Save size={16} /> Save
+                  </button>
+                  <button
+                    onClick={() => { handleDiscardDraft(); setIsEditMode(false); }}
+                    className="px-4 py-3 rounded-xl font-bold border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
            </div>
+        )}
+        {isEditMode && isAddModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/30"></div>
+            <div className="relative bg-white w-full max-w-lg rounded-2xl shadow-xl border border-gray-200 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-lg">Add Semantic Block & Queries</h3>
+                <button
+                  onClick={() => setIsAddModalOpen(false)}
+                  className="p-2 rounded-full hover:bg-gray-100 text-gray-500"
+                  title="Close"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="space-y-5">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Semantic Block (Keyword)</label>
+                  <input
+                    value={newGroupTerm}
+                    onChange={(e) => setNewGroupTerm(e.target.value)}
+                    placeholder="Enter keyword to track"
+                    className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Queries</label>
+                  <div className="flex gap-2 mt-1">
+                    <input
+                      value={newQueryInput}
+                      onChange={(e) => setNewQueryInput(e.target.value)}
+                      placeholder="Add a query text"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm"
+                      onKeyDown={(e) => e.key === 'Enter' && handleAddNewQuery()}
+                    />
+                    <button
+                      onClick={handleAddNewQuery}
+                      className="px-4 py-2 bg-black text-white rounded-lg font-bold hover:bg-gray-800 text-sm"
+                    >
+                      Add
+                    </button>
+                  </div>
+                  {newQueries.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {newQueries.map((q) => (
+                        <div key={q.id} className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-700">
+                          <span>{q.text}</span>
+                          <button
+                            onClick={() => handleRemoveNewQuery(q.id)}
+                            className="p-1 rounded hover:bg-gray-200 text-gray-500"
+                            title="Remove"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="mt-6 flex justify-end gap-2">
+                <button
+                  onClick={() => setIsAddModalOpen(false)}
+                  className="px-4 py-2 bg-white text-gray-700 rounded-lg border border-gray-300 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmAddGroup}
+                  disabled={!newGroupTerm.trim() || newQueries.length === 0}
+                  className={clsx(
+                    "px-4 py-2 rounded-lg font-bold",
+                    newGroupTerm.trim() && newQueries.length > 0 ? "bg-black text-white hover:bg-gray-800" : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  )}
+                >
+                  Confirm
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
         {activeTab === 'setting' && (
@@ -1612,7 +2033,7 @@ export default function Performance() {
                </div>
 
               {/* GA4 Connection */}
-              <div className="bg-white border border-gray-200 rounded-xl p-6">
+              <div ref={ga4SectionRef} className="bg-white border border-gray-200 rounded-xl p-6">
                 <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
                   <div className="w-8 h-8 bg-orange-100 text-orange-600 rounded-lg flex items-center justify-center">
                     <BarChart2 size={18} />
@@ -1626,18 +2047,24 @@ export default function Performance() {
                       <p className="text-xs text-gray-400">Required for organic traffic tracking</p>
                     </div>
                     <div className="flex gap-2 items-center">
-                      <button
-                        className="px-4 py-2 bg-black text-white font-medium rounded-lg hover:bg-gray-800 flex items-center gap-2"
-                        onClick={() => setGa4Selection('yes')}
-                      >
-                        <ExternalLink size={16} /> I have a GA4 account
-                      </button>
-                      <button
-                        className="px-4 py-2 bg-white border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50"
-                        onClick={() => setGa4Selection('no')}
-                      >
-                        I don’t have GA4
-                      </button>
+                      {!isGA4Connected ? (
+                        <button
+                          onClick={() => {
+                            setGaDebugStatus('linking');
+                            setTimeout(() => {
+                              setGA4Connected(true);
+                              setRole('active');
+                              setGaDebugStatus('needs_change');
+                            }, 800);
+                          }}
+                          className="px-3 py-1.5 bg-primary text-white rounded-lg text-xs font-bold hover:bg-primary/90"
+                        >
+                          连接 GA4
+                        </button>
+                      ) : (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-100">已连接</span>
+                      )}
+                      
                       <div className="relative">
                         <button
                           className="px-2.5 py-1.5 border border-gray-300 rounded-lg text-xs text-gray-600 hover:bg-gray-50 inline-flex items-center gap-1"
@@ -1764,157 +2191,7 @@ export default function Performance() {
             </div>
           </div>
         )}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setIsModalOpen(false)}></div>
-          <div className="relative bg-white border border-gray-200 rounded-2xl shadow-xl max-w-md w-full p-6">
-            <div className="flex items-start justify-between mb-3">
-              <h4 className="font-bold text-gray-900">{modalTitle}</h4>
-              <button className="p-2 rounded-md hover:bg-gray-100 text-gray-500" onClick={() => setIsModalOpen(false)}>
-                <X size={16} />
-              </button>
-            </div>
-            <p className="text-sm text-gray-600 mb-2">{modalBody}</p>
-            <a
-              href="https://vxqhv8tzaua.feishu.cn/wiki/FVSOwGJG1i1wY3kqNt3ctEUhnmc"
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline mb-4"
-            >
-              <ExternalLink size={12} /> View full guide
-            </a>
-            {ga4Selection === null && (
-              <div className="flex items-center gap-2 mb-4">
-                <button
-                  className="px-3 py-2 text-sm bg-black text-white rounded-md hover:bg-gray-800"
-                  onClick={() => {
-                    window.open('https://analytics.google.com/', '_blank');
-                    setIsModalOpen(false);
-                  }}
-                >
-                  I have a GA4 account
-                </button>
-                <button
-                  className="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
-                  onClick={() => {
-                    setGa4Selection('no');
-                    setModalLink(null);
-                  }}
-                >
-                  I don’t have GA4
-                </button>
-              </div>
-            )}
-            {ga4Selection === 'no' && (
-              <div className="space-y-3 mb-4">
-                <div>
-                  <h4 className="text-sm font-bold text-gray-900 mb-1">Choose your site platform</h4>
-                  <p className="text-xs text-gray-500">We’ll provide the appropriate connection steps</p>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {['Shopify', 'WordPress', 'Webflow', 'Wix', 'Squarespace', 'Custom Site'].map((name) => (
-                    <label key={name} className="cursor-pointer">
-                      <input
-                        type="radio"
-                        name="sitePlatform"
-                        value={name}
-                        className="sr-only peer"
-                        onChange={() => setSitePlatform(name)}
-                      />
-                      <div className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 peer-checked:border-black peer-checked:bg-black/5">
-                        {name}
-                      </div>
-                    </label>
-                  ))}
-                </div>
-                <div className="flex justify-end">
-                  <button
-                    className="px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800 font-medium disabled:opacity-50"
-                    disabled={!sitePlatform}
-                    onClick={handleConfirmPlatform}
-                  >
-                    Confirm Platform
-                  </button>
-                </div>
-              </div>
-            )}
-            
-            {sitePlatform === 'Custom Site' ? (
-              <>
-                {isGeneratingCode ? (
-                  <div className="flex items-center gap-3 text-sm text-gray-600">
-                    <span className="h-4 w-4 rounded-full border-2 border-gray-300 border-t-black animate-spin"></span>
-                    Generating your code file...
-                  </div>
-                ) : (
-                  <>
-                    <div className="rounded-lg border border-gray-200 bg-white p-4 mb-3">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="p-1.5 rounded-lg bg-blue-100 text-blue-600">
-                          <ExternalLink size={14} />
-                        </div>
-                        <div className="text-sm font-bold text-gray-900">JF Setup Guide</div>
-                      </div>
-                      <div className="text-xs text-gray-500 mb-2">Quick steps to register JF and upload your code</div>
-                      <ol className="list-decimal pl-4 text-sm text-gray-700 space-y-1">
-                        <li>Open the JF portal and create an account.</li>
-                        <li>Verify your email and sign in.</li>
-                        <li>Create a new project for your site/app.</li>
-                        <li>Upload your code archive (.zip) or connect your repository.</li>
-                        <li>Wait for processing to complete and confirm deployment.</li>
-                      </ol>
-                      <div className="mt-3 flex items-center gap-2">
-                        <a
-                          href={modalLink ?? '#'}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-sm px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 inline-flex items-center gap-1"
-                        >
-                          <ExternalLink size={14} /> Get JF Docs
-                        </a>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </>
-            ) : (
-              <>
-                {modalLink && (
-                  <div className="flex items-center gap-2">
-                    <a
-                      href={modalLink}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-2 text-sm font-medium px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
-                    >
-                      <ExternalLink size={14} /> Open guide
-                    </a>
-                    <button
-                      className="text-sm px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800 font-medium"
-                      onClick={() => {
-                        window.open('https://analytics.google.com/', '_blank');
-                        setIsModalOpen(false);
-                      }}
-                    >
-                      I’ve completed the steps — Start linking
-                    </button>
-                  </div>
-                )}
-                {!modalLink && (
-                  <div className="flex justify-end">
-                    <button
-                      className="px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800 font-medium"
-                      onClick={() => setIsModalOpen(false)}
-                    >
-                      Got it
-                    </button>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        </div>
-      )}
+      
       
       {visConfigOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -1987,6 +2264,7 @@ export default function Performance() {
           </div>
         </div>
       )}
+    </div>
     </div>
   );
 }

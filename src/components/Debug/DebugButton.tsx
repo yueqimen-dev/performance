@@ -3,7 +3,7 @@ import { useUserStore, UserRole } from '../../store/useUserStore';
 import { clsx } from 'clsx';
 
 export function DebugButton() {
-  const { role, setRole } = useUserStore();
+  const { role, setRole, setGA4Connected } = useUserStore();
 
   const roles: { id: UserRole; label: string }[] = [
     { id: 'free', label: 'Free' },
@@ -16,7 +16,15 @@ export function DebugButton() {
       {roles.map((r) => (
         <button
           key={r.id}
-          onClick={() => setRole(r.id)}
+          onClick={() => {
+            setRole(r.id);
+            if (r.id === 'pending') {
+              setGA4Connected(false);
+            }
+            if (r.id === 'active') {
+              setGA4Connected(true);
+            }
+          }}
           className={clsx(
             "px-4 py-1.5 rounded-full text-xs font-bold transition-all",
             role === r.id 
