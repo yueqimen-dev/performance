@@ -187,8 +187,8 @@ export default function Performance() {
   const [newGroupTerm, setNewGroupTerm] = useState('');
   const [newQueryInput, setNewQueryInput] = useState('');
   const [newQueries, setNewQueries] = useState<{ id: string; text: string }[]>([]);
-  const updateIntervalDays = 3;
-
+  const [updateIntervalDays, setUpdateIntervalDays] = useState(3);
+  
   const platforms: { id: PlatformId; label: string; icon: LucideIcon }[] = [
     { id: 'ChatGPT', label: 'ChatGPT', icon: MessageSquare },
     { id: 'Claude', label: 'Claude', icon: MessageSquare },
@@ -196,29 +196,12 @@ export default function Performance() {
     { id: 'Gemini', label: 'Gemini', icon: MessageSquare },
     { id: 'SearchGPT', label: 'SearchGPT', icon: MessageSquare }
   ];
-  const makeDraft = (data: KeywordGroup[]) => data.map(g => ({
-    ...g,
-    queries: g.queries.map(q => ({
-      ...q,
-      platforms: { ...q.platforms },
-      positions: q.positions ? { ...q.positions } : undefined
-    }))
-  }));
-  useEffect(() => {
-    if (isEditMode) {
-      setDataDraft(makeDraft(attributionData));
-      setHasDraftChanges(false);
-      setEditingGroupId(null);
-      setEditingQueryId(null);
-    } else {
-      setDataDraft(null);
-      setEditingGroupId(null);
-      setEditingQueryId(null);
-    }
-  }, [isEditMode, attributionData]);
-  const handleStartEditGroup = (group: KeywordGroup) => {
-    setEditingGroupId(group.id);
-    setEditingGroupValue(group.keyword);
+  
+  const makeDraft = (data: KeywordGroup[]) => JSON.parse(JSON.stringify(data));
+  
+  const handleStartEditGroup = (g: KeywordGroup) => {
+    setEditingGroupId(g.id);
+    setEditingGroupValue(g.keyword);
   };
   const handleApplyEditGroup = () => {
     if (!dataDraft || !editingGroupId) return;
@@ -229,18 +212,18 @@ export default function Performance() {
     setEditingGroupId(null);
     setEditingGroupValue('');
   };
-  const handleDeleteGroup = (groupId: string) => {
+  const handleDeleteGroup = (id: string) => {
     if (!dataDraft) return;
-    setDataDraft(dataDraft.filter(g => g.id !== groupId));
+    setDataDraft(dataDraft.filter(g => g.id !== id));
     setHasDraftChanges(true);
-    if (editingGroupId === groupId) {
+    if (editingGroupId === id) {
       setEditingGroupId(null);
       setEditingGroupValue('');
     }
   };
-  const handleStartEditQuery = (query: Query) => {
-    setEditingQueryId(query.id);
-    setEditingQueryValue(query.text);
+  const handleStartEditQuery = (q: Query) => {
+    setEditingQueryId(q.id);
+    setEditingQueryValue(q.text);
   };
   const handleApplyEditQuery = (groupId: string) => {
     if (!dataDraft || !editingQueryId) return;
@@ -326,6 +309,19 @@ export default function Performance() {
     setEditingQueryId(null);
     setEditingQueryValue('');
   };
+  
+  useEffect(() => {
+    if (isEditMode) {
+      setDataDraft(makeDraft(attributionData));
+      setHasDraftChanges(false);
+      setEditingGroupId(null);
+      setEditingQueryId(null);
+    } else {
+      setDataDraft(null);
+      setEditingGroupId(null);
+      setEditingQueryId(null);
+    }
+  }, [isEditMode, attributionData]);
 
   const toggleKeyword = (id: string) => {
     setExpandedKeywords(prev => 
@@ -588,15 +584,26 @@ export default function Performance() {
 
       {/* Main Content Area - Darker Background for Contrast */}
       <div>
-        {/* Overlay for Free/Pending states */}
-        {(role === 'free' || role === 'pending') && renderContent()}
+        {/* Overlay for Free states only */}
+        {(role === 'free') && renderContent()}
 
         {/* Tab Content */}
-        {activeTab === 'data' && (
-          <div className={clsx((role === 'free' || role === 'pending') && "filter blur-sm select-none pointer-events-none")}>
+        {activeTab === 'data' && (<React.Fragment>
+          <div className={clsx((role === 'free') && "filter blur-sm select-none pointer-events-none")}>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
               {/* Left Column: Traffic Analytics */}
-              <div className={clsx("space-y-6", (role === 'free' || role === 'pending') && "filter blur-sm select-none pointer-events-none")}>
+              <div className="space-y-6 relative">
+                {role === 'pending' && (
+                  <div className="absolute top-20 bottom-0 left-0 right-0 z-20 backdrop-blur-sm bg-white/60 flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-300">
+                     <button
+                        onClick={() => setTrafficSettingsOpen(true)}
+                        className="px-6 py-3 bg-black text-white rounded-xl font-bold hover:bg-gray-800 shadow-lg active:scale-95 flex items-center gap-2 transition-all"
+                      >
+                        <Settings size={18} /> 链接 Google Analytics
+                      </button>
+                  </div>
+                )}
+                <div className={clsx((role === 'free') && "filter blur-sm select-none pointer-events-none")}>
                 <div className="flex items-start gap-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
@@ -635,7 +642,7 @@ export default function Performance() {
                         </span>
                       </div>
                     </div>
-                    <div className="text-2xl font-bold text-gray-900 tracking-tight">{(!isGA4Connected || role === 'pending') ? '?' : '12,500'}</div>
+                    <div className="text-2xl font-bold text-gray-900 tracking-tight">{(!isGA4Connected) ? '?' : '12,500'}</div>
                     
                   </div>
                   <div 
@@ -655,7 +662,7 @@ export default function Performance() {
                         </span>
                       </div>
                     </div>
-                    <div className="text-2xl font-bold text-gray-900 tracking-tight">{(!isGA4Connected || role === 'pending') ? '?' : '1,200'}</div>
+                    <div className="text-2xl font-bold text-gray-900 tracking-tight">{(!isGA4Connected) ? '?' : '1,200'}</div>
                     
                   </div>
                   <div 
@@ -675,7 +682,7 @@ export default function Performance() {
                         </span>
                       </div>
                     </div>
-                    <div className="text-2xl font-bold text-gray-900 tracking-tight">{(!isGA4Connected || role === 'pending') ? '?' : '850'}</div>
+                    <div className="text-2xl font-bold text-gray-900 tracking-tight">{(!isGA4Connected) ? '?' : '850'}</div>
                     
                   </div>
                 </div>
@@ -687,7 +694,6 @@ export default function Performance() {
                         <BarChart2 size={16} />
                       </div>
                       {trafficTitleMap[activeTrafficSource]}
-                      
                     </h4>
                     <div className="relative flex items-center gap-2">
                       
@@ -783,12 +789,15 @@ export default function Performance() {
                       )}
                       
                       
-                  </div>
+                  </div></div>
                   {role === 'pending' ? (
-                    <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-20">
-                      <div className="px-4 py-2 rounded-xl bg-white shadow-lg border border-gray-200 text-xs font-semibold text-gray-600">
-                        Waiting for GA4 connection... Traffic chart is in pending state.
-                      </div>
+                    <div className="absolute top-20 bottom-0 left-0 right-0 z-20 backdrop-blur-sm bg-white/60 flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-300">
+                      <button
+                        onClick={() => setTrafficSettingsOpen(true)}
+                        className="px-6 py-3 bg-black text-white rounded-xl font-bold hover:bg-gray-800 shadow-lg active:scale-95 flex items-center gap-2 transition-all"
+                      >
+                        <Settings size={18} /> 链接 Google Analytics
+                      </button>
                     </div>
                   ) : (
                     !isGA4Connected && (
@@ -826,151 +835,27 @@ export default function Performance() {
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
-                <div className="h-[300px] w-full bg-white border border-gray-200 rounded-2xl p-6 shadow-sm relative overflow-hidden mt-4">
-                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-green-500 to-purple-500 opacity-20"></div>
-                  <div className="flex items-center justify-between mb-6 relative z-10">
-                    <h4 className="font-bold text-gray-900 flex items-center gap-2">
-                      <div className="p-1.5 rounded-lg bg-blue-100 text-blue-600">
-                        <BarChart2 size={16} />
-                      </div>
-                      {trafficTitleMap[activeTrafficSource]}
-                    </h4>
-                    <div className="relative flex items-center gap-2">
-                      <button
-                        onClick={() => setTimeMenuOpen((v) => !v)}
-                        className="text-xs font-medium border border-gray-200 bg-gray-50 rounded-lg px-3 py-1.5 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 text-gray-700 transition-all cursor-pointer hover:bg-white hover:shadow-sm"
-                        title="Choose date range"
-                      >
-                        {getTimeRangeLabel()}
-                      </button>
-                      {timeMenuOpen && (
-                        <div className="absolute top-full right-0 mt-2 w-64 bg-white border border-gray-200 rounded-xl shadow-lg z-30">
-                          <div className="py-2 max-h-64 overflow-y-auto">
-                            <button
-                              className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                              onClick={() => {
-                                setIsCustomRange(true);
-                              }}
-                            >
-                              Custom
-                            </button>
-                            <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => { setIsCustomRange(false); setTimeRange('today'); setTimeMenuOpen(false); }}>
-                              Today
-                            </button>
-                            <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => { setIsCustomRange(false); setTimeRange('yesterday'); setTimeMenuOpen(false); }}>
-                              Yesterday
-                            </button>
-                            <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => { setIsCustomRange(false); setTimeRange('this_week_to_today'); setTimeMenuOpen(false); }}>
-                              This week (Sun to today)
-                            </button>
-                            <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => { setIsCustomRange(false); setTimeRange('7d'); setTimeMenuOpen(false); }}>
-                              Last 7 days
-                            </button>
-                            <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => { setIsCustomRange(false); setTimeRange('last_week'); setTimeMenuOpen(false); }}>
-                              Last week (Sun to Sat)
-                            </button>
-                            <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => { setIsCustomRange(false); setTimeRange('28d'); setTimeMenuOpen(false); }}>
-                              Last 28 days
-                            </button>
-                            <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => { setIsCustomRange(false); setTimeRange('30d'); setTimeMenuOpen(false); }}>
-                              Last 30 days
-                            </button>
-                            <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => { setIsCustomRange(false); setTimeRange('this_month'); setTimeMenuOpen(false); }}>
-                              This month
-                            </button>
-                            <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => { setIsCustomRange(false); setTimeRange('last_month'); setTimeMenuOpen(false); }}>
-                              Last month
-                            </button>
-                            <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => { setIsCustomRange(false); setTimeRange('90d'); setTimeMenuOpen(false); }}>
-                              Last 90 days
-                            </button>
-                          </div>
-                          {isCustomRange && (
-                            <div className="border-t border-gray-200 p-3 space-y-2">
-                              <div className="text-[11px] text-gray-500 font-medium">Start date — End date</div>
-                              <div className="flex items-center gap-2">
-                                <input
-                                  type="date"
-                                  value={customStartDate}
-                                  onChange={(e) => setCustomStartDate(e.target.value)}
-                                  className="flex-1 border border-gray-200 rounded-lg px-2 py-1 text-sm"
-                                />
-                                <span className="text-gray-400">—</span>
-                                <input
-                                  type="date"
-                                  value={customEndDate}
-                                  onChange={(e) => setCustomEndDate(e.target.value)}
-                                  className="flex-1 border border-gray-200 rounded-lg px-2 py-1 text-sm"
-                                />
-                              </div>
-                              <div className="flex justify-end">
-                                <button
-                                  disabled={!customStartDate || !customEndDate}
-                                  className={clsx(
-                                    "px-3 py-1.5 rounded-lg text-sm font-bold",
-                                    customStartDate && customEndDate ? "bg-primary text-white" : "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                  )}
-                                  onClick={() => {
-                                    if (customStartDate && customEndDate) {
-                                      setIsCustomRange(true);
-                                      setTimeRange('custom');
-                                      setTimeMenuOpen(false);
-                                    }
-                                  }}
-                                >
-                                  Apply
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                    {role === 'pending' ? (
-                      <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-20">
-                        <div className="px-4 py-2 rounded-xl bg-white shadow-lg border border-gray-200 text-xs font-semibold text-gray-600">
-                          Waiting for GA4 connection... Traffic chart is in pending state.
-                        </div>
-                      </div>
-                    ) : (
-                      !isGA4Connected && (
-                        <div className="absolute inset-0 bg-white/70 backdrop-blur-sm flex items-center justify-center z-20">
-                          <button
-                            onClick={() => setTrafficSettingsOpen(true)}
-                            className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 shadow-lg active:scale-95 flex items-center gap-2"
-                          >
-                            <Settings size={16} /> 关联我的 Google Analytics 账号
-                          </button>
-                        </div>
-                      )
-                    )}
-                    <div className="text-[11px] text-gray-400 mb-2">Last updated: {lastUpdated}</div>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 500 }} dy={10} />
-                        <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 500 }} />
-                        <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 500 }} />
-                        <Tooltip 
-                          contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '12px', padding: '12px' }}
-                          cursor={{ stroke: '#cbd5e1', strokeWidth: 1, strokeDasharray: '4 4' }}
-                        />
-                        {activeTrafficSource === 'organic' && (
-                          <Line yAxisId="left" type="monotone" dataKey="organic" name="Total Traffic" stroke="#3b82f6" strokeWidth={3} dot={false} activeDot={{ r: 6, strokeWidth: 0 }} />
-                        )}
-                        {activeTrafficSource === 'ai' && (
-                          <Line yAxisId="right" type="monotone" dataKey="ai" name="AI Traffic" stroke="#10b981" strokeWidth={3} dot={false} />
-                        )}
-                        {activeTrafficSource === 'social' && (
-                          <Line yAxisId="right" type="monotone" dataKey="social" name="Social Traffic" stroke="#8b5cf6" strokeWidth={3} dot={false} />
-                        )}
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
+              </div>
               </div>
 
               {/* Right Column: Visibility & Sentiment */}
-              <div className="space-y-6">
+              <div className="space-y-6 relative">
+                 {role === 'pending' && (
+                  <div className="absolute top-10 bottom-0 left-0 right-0 z-20 backdrop-blur-sm bg-white/60 flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-300">
+                     <button
+                        onClick={() => {
+                          setIsEditMode(true);
+                          setDataDraft(makeDraft(attributionData));
+                          // Switch to Query tab to manage keywords
+                          setActiveTab('query');
+                        }}
+                        className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 shadow-lg active:scale-95 flex items-center gap-2 transition-all"
+                      >
+                        <MessageSquare size={18} /> 管理 Query
+                      </button>
+                  </div>
+                )}
+                <div className={clsx((role === 'free') && "filter blur-sm select-none pointer-events-none")}>
                 <h3 className="font-bold text-gray-900 text-lg flex items-center gap-2">
                   <Zap className="text-orange-500" size={20} />
                   AI Visibility
@@ -1202,9 +1087,9 @@ export default function Performance() {
               </div>
             </div>
           </div>
-          
+          </div>
           <div className="mt-8 space-y-8"></div>
-        )}
+        </React.Fragment>)}
         {isEditMode && isSaveConfirmOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center">
             <div className="absolute inset-0 bg-black/30" onClick={() => { setIsSaveConfirmOpen(false); setIsEditMode(false); }}></div>
@@ -1334,7 +1219,17 @@ export default function Performance() {
                    </div>
                    Query Attribution
                  </h4>
-                
+                 {!isEditMode && (
+                    <button
+                      onClick={() => {
+                        setIsEditMode(true);
+                        setDataDraft(makeDraft(attributionData));
+                      }}
+                      className="text-xs font-bold text-indigo-600 hover:bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-200 transition-colors flex items-center gap-2"
+                    >
+                      <Edit2 size={14} /> Edit Keywords
+                    </button>
+                 )}
                </div>
                <div className="flex justify-between items-center mb-2">
                  <div className="text-xs text-gray-400">Last updated: {lastUpdated}</div>
@@ -1806,29 +1701,32 @@ export default function Performance() {
                </table>
              </div>
             {isEditMode && (
-              <div className="mt-4 flex justify-between items-center gap-3">
+              <div className="mt-4 flex justify-between items-center gap-3 bg-white p-4 rounded-xl border border-purple-200 shadow-sm sticky bottom-0 z-20">
                 <button
                   onClick={handleAddModalOpen}
-                  className="px-6 py-3 min-w-[220px] bg-black text-white rounded-xl font-bold flex items-center gap-2 hover:bg-gray-800"
+                  className="px-4 py-2 bg-black text-white rounded-lg font-bold flex items-center gap-2 hover:bg-gray-800 text-sm transition-colors"
                 >
-                  <Plus size={16} /> + ADD
+                  <Plus size={16} /> Add Keyword
                 </button>
                 <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500 mr-2">
+                    {hasDraftChanges ? "Unsaved changes" : "No changes"}
+                  </span>
+                  <button
+                    onClick={() => { handleDiscardDraft(); setIsEditMode(false); }}
+                    className="px-4 py-2 rounded-lg font-bold border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors text-sm"
+                  >
+                    Cancel
+                  </button>
                   <button
                     onClick={() => setIsSaveConfirmOpen(true)}
                     disabled={!hasDraftChanges}
                     className={clsx(
-                      "px-4 py-3 rounded-xl font-bold flex items-center gap-2 transition-all",
-                      hasDraftChanges ? "bg-black text-white hover:bg-gray-800" : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      "px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-all text-sm",
+                      hasDraftChanges ? "bg-indigo-600 text-white hover:bg-indigo-700 shadow-md shadow-indigo-200" : "bg-gray-100 text-gray-400 cursor-not-allowed"
                     )}
                   >
-                    <Save size={16} /> Save
-                  </button>
-                  <button
-                    onClick={() => { handleDiscardDraft(); setIsEditMode(false); }}
-                    className="px-4 py-3 rounded-xl font-bold border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
-                  >
-                    Cancel
+                    <Save size={16} /> Save Changes
                   </button>
                 </div>
               </div>
@@ -1916,7 +1814,7 @@ export default function Performance() {
           </div>
         )}
 
-        {activeTab === 'setting' && (
+        {activeTab === 'setting' && (<React.Fragment>
            <div className={clsx(role === 'free' && "filter blur-sm select-none pointer-events-none")}>
              <div className="max-w-2xl mx-auto space-y-8">
                {/* Keywords & Queries Management */}
@@ -2339,9 +2237,8 @@ export default function Performance() {
               </div>
             </div>
           </div>
-        )}
-      
-      
+        </React.Fragment>)}
+
       {visConfigOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/40" onClick={() => setVisConfigOpen(false)}></div>
@@ -2413,7 +2310,6 @@ export default function Performance() {
           </div>
         </div>
       )}
-    </div>
     </div>
   );
 }
