@@ -55,7 +55,7 @@ export function Sidebar() {
     {
       label: 'Performance',
       items: [
-        { label: 'Track Sales Results', path: '/performance', icon: BarChart2, badge: role === 'free' ? 'Locked' : undefined }
+        { label: 'Track Marketing Results', path: '/performance', icon: BarChart2, badge: role === 'free' ? 'Locked' : undefined }
       ]
     }
   ];

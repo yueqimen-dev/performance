@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useUserStore } from '../store/useUserStore';
 import { useLayoutStore } from '../store/useLayoutStore';
 import { 
@@ -44,11 +44,11 @@ import {
   CartesianGrid, 
   Tooltip, 
   ResponsiveContainer,
-  Legend
 } from 'recharts';
 
 type PlatformStatus = 'mentioned' | 'not_mentioned' | 'negative';
 type PlatformId = 'ChatGPT' | 'Claude' | 'Perplexity' | 'Gemini' | 'SearchGPT';
+type SocialSourceId = 'reddit' | 'linkedin' | 'tiktok' | 'instagram' | 'facebook' | 'x' | 'youtube' | 'pinterest' | 'quora';
 
 type TabId = 'data' | 'query' | 'setting';
 type Tab = { id: TabId; label: string; icon: LucideIcon };
@@ -73,7 +73,6 @@ export default function Performance() {
   const ga4SectionRef = useRef<HTMLDivElement | null>(null);
   const [timeRange, setTimeRange] = useState('7d');
   const [timeMenuOpen, setTimeMenuOpen] = useState(false);
-  const [chartSettingsOpen, setChartSettingsOpen] = useState(false);
   const [isCustomRange, setIsCustomRange] = useState(false);
   const [customStartDate, setCustomStartDate] = useState<string>('');
   const [customEndDate, setCustomEndDate] = useState<string>('');
@@ -141,9 +140,52 @@ export default function Performance() {
   // Debug State
   const [hasKeywords, setHasKeywords] = useState(true);
   const [setupKeywords, setSetupKeywords] = useState<{id: string, term: string}[]>([]); // New Setup Mode state
-  const [activeMetric, setActiveMetric] = useState<'visibility' | 'sentiment' | 'position'>('visibility');
+  const [activeMetric, setActiveMetric] = useState<'visibility' | 'position'>('visibility');
   const [activeTrafficSource, setActiveTrafficSource] = useState<'organic' | 'ai' | 'social'>('organic');
-  const trafficTitleMap = { organic: 'ORGANIC', ai: 'AI Search', social: 'Social Media' };
+  const [organicTrafficView, setOrganicTrafficView] = useState<'total' | 'google' | 'bing' | 'direct'>('total');
+  const [aiTrafficView, setAiTrafficView] = useState<'total' | 'chatgpt' | 'gemini' | 'claude'>('total');
+  const socialSourceOptions = useMemo((): readonly { id: SocialSourceId; label: string }[] => ([
+    { id: 'reddit', label: 'Reddit' },
+    { id: 'linkedin', label: 'LinkedIn' },
+    { id: 'tiktok', label: 'TikTok' },
+    { id: 'instagram', label: 'Instagram' },
+    { id: 'facebook', label: 'Facebook' },
+    { id: 'x', label: 'X' },
+    { id: 'youtube', label: 'YouTube' },
+    { id: 'pinterest', label: 'Pinterest' },
+    { id: 'quora', label: 'Quora' },
+  ]), []);
+  const [socialTrafficView, setSocialTrafficView] = useState<'total' | SocialSourceId | 'other'>('total');
+  const [socialOtherMenuOpen, setSocialOtherMenuOpen] = useState(false);
+  const [socialOtherSelected, setSocialOtherSelected] = useState<Record<SocialSourceId, boolean>>({
+    reddit: true,
+    linkedin: true,
+    tiktok: true,
+    instagram: true,
+    facebook: true,
+    x: true,
+    youtube: true,
+    pinterest: true,
+    quora: true,
+  });
+  const trafficTitleMap = { organic: 'Organic Search', ai: 'AI Referral', social: 'Social Referral' };
+  const tooltipText = {
+    organicSearch: `Organic Search
+EN  Visitors who found your site by typing a query into a search engine (Google, Bing) and clicking a non-paid result. Direct traffic (users who typed your URL directly) is also included in this metric.
+中文  通过在搜索引擎（Google、Bing）中输入关键词、点击自然搜索结果访问网站的用户。也包含直接输入网址访问的用户。`,
+    aiReferral: `AI Referral
+EN  Visitors who came to your site via an AI assistant or chatbot (ChatGPT, Gemini, Claude). These users asked an AI a question, and the AI recommended or linked to your site in its response.
+中文  通过 AI 工具（ChatGPT、Gemini、Claude）访问网站的用户。这些用户向 AI 提问后，AI 在回答中推荐或引用了你的网站链接。`,
+    socialReferral: `Social Referral
+EN  Visitors who clicked a link to your site from a social media platform (Reddit, LinkedIn, TikTok, Instagram, Facebook, X, YouTube, Pinterest, Quora). This only includes organic clicks — paid ads are excluded.
+中文  通过社交媒体平台（Reddit、LinkedIn、TikTok、Instagram、Facebook、X、YouTube、Pinterest、Quora）上的链接点击访问网站的用户。仅统计自然点击，不含付费广告带来的流量。`,
+    aiVisibility: `AI visibility
+EN  The percentage of AI responses (across ChatGPT, Gemini, Claude) that mention your brand, out of all tracked queries.
+中文  在所有追踪的搜索词中，AI（ChatGPT、Gemini、Claude）回答里提及你品牌的比例。`,
+    position: `Position
+EN  The average position your brand appears at when mentioned in an AI response. Lower is better.
+中文  AI 提及你品牌时的平均出现位置。数值越小越好`,
+  } as const;
   const [chatInput, setChatInput] = useState('');
   const [showChatSuggestions, setShowChatSuggestions] = useState(false);
   const [trafficSettingsOpen, setTrafficSettingsOpen] = useState(false);
@@ -194,7 +236,7 @@ export default function Performance() {
   const [newGroupTerm, setNewGroupTerm] = useState('');
   const [newQueryInput, setNewQueryInput] = useState('');
   const [newQueries, setNewQueries] = useState<{ id: string; text: string }[]>([]);
-  const [updateIntervalDays, setUpdateIntervalDays] = useState(3);
+  const [updateIntervalDays] = useState(3);
   
   const platforms: { id: PlatformId; label: string; icon: LucideIcon }[] = [
     { id: 'ChatGPT', label: 'ChatGPT', icon: MessageSquare },
@@ -227,10 +269,6 @@ export default function Performance() {
       setEditingGroupId(null);
       setEditingGroupValue('');
     }
-  };
-  const handleStartEditQuery = (q: Query) => {
-    setEditingQueryId(q.id);
-    setEditingQueryValue(q.text);
   };
   const handleApplyEditQuery = (groupId: string) => {
     if (!dataDraft || !editingQueryId) return;
@@ -443,39 +481,81 @@ export default function Performance() {
     setTimeout(() => setIsUpdating(false), 2000); // Mock update delay
   };
 
-  // Mock Data for Chart
-  const getChartData = () => {
+  type TrafficChartRow = { name: string } & Record<string, number | string>;
+
+  const getChartData = (): TrafficChartRow[] => {
     switch(timeRange) {
       case '24h':
         return [
-          { name: '00:00', organic: 120, ai: 12, social: 5 },
-          { name: '04:00', organic: 80, ai: 8, social: 3 },
-          { name: '08:00', organic: 250, ai: 25, social: 15 },
-          { name: '12:00', organic: 400, ai: 45, social: 28 },
-          { name: '16:00', organic: 350, ai: 38, social: 22 },
-          { name: '20:00', organic: 300, ai: 30, social: 18 },
+          { name: '00:00', organic: 120, google: 70, bing: 20, direct: 30, ai: 12, ai_chatgpt: 6, ai_gemini: 3, ai_claude: 3, social: 45, social_reddit: 12, social_x: 10, social_youtube: 8, social_linkedin: 5, social_tiktok: 3, social_instagram: 3, social_facebook: 2, social_pinterest: 1, social_quora: 1 },
+          { name: '04:00', organic: 80, google: 45, bing: 12, direct: 23, ai: 8, ai_chatgpt: 4, ai_gemini: 2, ai_claude: 2, social: 30, social_reddit: 8, social_x: 7, social_youtube: 6, social_linkedin: 3, social_tiktok: 2, social_instagram: 2, social_facebook: 1, social_pinterest: 1, social_quora: 0 },
+          { name: '08:00', organic: 250, google: 155, bing: 35, direct: 60, ai: 25, ai_chatgpt: 14, ai_gemini: 6, ai_claude: 5, social: 90, social_reddit: 25, social_x: 20, social_youtube: 15, social_linkedin: 10, social_tiktok: 7, social_instagram: 5, social_facebook: 4, social_pinterest: 2, social_quora: 2 },
+          { name: '12:00', organic: 400, google: 250, bing: 55, direct: 95, ai: 45, ai_chatgpt: 24, ai_gemini: 11, ai_claude: 10, social: 140, social_reddit: 40, social_x: 30, social_youtube: 22, social_linkedin: 16, social_tiktok: 10, social_instagram: 8, social_facebook: 7, social_pinterest: 4, social_quora: 3 },
+          { name: '16:00', organic: 350, google: 220, bing: 45, direct: 85, ai: 38, ai_chatgpt: 20, ai_gemini: 9, ai_claude: 9, social: 120, social_reddit: 34, social_x: 26, social_youtube: 20, social_linkedin: 14, social_tiktok: 9, social_instagram: 7, social_facebook: 6, social_pinterest: 2, social_quora: 2 },
+          { name: '20:00', organic: 300, google: 190, bing: 35, direct: 75, ai: 30, ai_chatgpt: 16, ai_gemini: 7, ai_claude: 7, social: 100, social_reddit: 28, social_x: 22, social_youtube: 16, social_linkedin: 12, social_tiktok: 7, social_instagram: 6, social_facebook: 5, social_pinterest: 2, social_quora: 2 },
         ];
       case '3d':
         return [
-          { name: 'Day 1', organic: 2500, ai: 180, social: 90 },
-          { name: 'Day 2', organic: 3100, ai: 220, social: 150 },
-          { name: 'Day 3', organic: 2800, ai: 200, social: 120 },
+          { name: 'Day 1', organic: 2500, google: 1550, bing: 350, direct: 600, ai: 180, ai_chatgpt: 100, ai_gemini: 45, ai_claude: 35, social: 520, social_reddit: 170, social_x: 120, social_youtube: 90, social_linkedin: 55, social_tiktok: 30, social_instagram: 25, social_facebook: 15, social_pinterest: 10, social_quora: 5 },
+          { name: 'Day 2', organic: 3100, google: 1900, bing: 420, direct: 780, ai: 220, ai_chatgpt: 120, ai_gemini: 55, ai_claude: 45, social: 680, social_reddit: 220, social_x: 160, social_youtube: 120, social_linkedin: 70, social_tiktok: 40, social_instagram: 35, social_facebook: 20, social_pinterest: 10, social_quora: 5 },
+          { name: 'Day 3', organic: 2800, google: 1720, bing: 390, direct: 690, ai: 200, ai_chatgpt: 110, ai_gemini: 50, ai_claude: 40, social: 600, social_reddit: 200, social_x: 140, social_youtube: 105, social_linkedin: 60, social_tiktok: 35, social_instagram: 30, social_facebook: 18, social_pinterest: 8, social_quora: 4 },
         ];
       case '7d':
       default:
         return [
-          { name: 'Day 1', organic: 4000, ai: 240, social: 100 },
-          { name: 'Day 2', organic: 3500, ai: 200, social: 180 },
-          { name: 'Day 3', organic: 3000, ai: 139, social: 221 },
-          { name: 'Day 4', organic: 3200, ai: 280, social: 150 },
-          { name: 'Day 5', organic: 2000, ai: 980, social: 229 },
-          { name: 'Day 6', organic: 2780, ai: 390, social: 200 },
-          { name: 'Day 7', organic: 3490, ai: 430, social: 210 },
+          { name: 'Day 1', organic: 4000, google: 2500, bing: 520, direct: 980, ai: 240, ai_chatgpt: 130, ai_gemini: 60, ai_claude: 50, social: 600, social_reddit: 210, social_x: 150, social_youtube: 110, social_linkedin: 60, social_tiktok: 25, social_instagram: 20, social_facebook: 15, social_pinterest: 7, social_quora: 3 },
+          { name: 'Day 2', organic: 3500, google: 2150, bing: 480, direct: 870, ai: 200, ai_chatgpt: 110, ai_gemini: 50, ai_claude: 40, social: 720, social_reddit: 250, social_x: 180, social_youtube: 130, social_linkedin: 70, social_tiktok: 35, social_instagram: 25, social_facebook: 18, social_pinterest: 8, social_quora: 4 },
+          { name: 'Day 3', organic: 3000, google: 1850, bing: 420, direct: 730, ai: 139, ai_chatgpt: 75, ai_gemini: 35, ai_claude: 29, social: 680, social_reddit: 235, social_x: 170, social_youtube: 120, social_linkedin: 65, social_tiktok: 32, social_instagram: 24, social_facebook: 20, social_pinterest: 10, social_quora: 4 },
+          { name: 'Day 4', organic: 3200, google: 1980, bing: 450, direct: 770, ai: 280, ai_chatgpt: 150, ai_gemini: 70, ai_claude: 60, social: 640, social_reddit: 220, social_x: 160, social_youtube: 115, social_linkedin: 62, social_tiktok: 30, social_instagram: 25, social_facebook: 18, social_pinterest: 7, social_quora: 3 },
+          { name: 'Day 5', organic: 2000, google: 1200, bing: 280, direct: 520, ai: 980, ai_chatgpt: 520, ai_gemini: 250, ai_claude: 210, social: 760, social_reddit: 270, social_x: 195, social_youtube: 140, social_linkedin: 78, social_tiktok: 35, social_instagram: 24, social_facebook: 12, social_pinterest: 4, social_quora: 2 },
+          { name: 'Day 6', organic: 2780, google: 1700, bing: 390, direct: 690, ai: 390, ai_chatgpt: 210, ai_gemini: 100, ai_claude: 80, social: 700, social_reddit: 245, social_x: 180, social_youtube: 125, social_linkedin: 72, social_tiktok: 32, social_instagram: 24, social_facebook: 15, social_pinterest: 5, social_quora: 2 },
+          { name: 'Day 7', organic: 3490, google: 2150, bing: 500, direct: 840, ai: 430, ai_chatgpt: 230, ai_gemini: 110, ai_claude: 90, social: 720, social_reddit: 260, social_x: 185, social_youtube: 135, social_linkedin: 78, social_tiktok: 35, social_instagram: 20, social_facebook: 5, social_pinterest: 1, social_quora: 1 },
         ];
     }
   };
 
   const chartData = getChartData();
+  const trafficSparklineData = useMemo(() => {
+    return chartData.map((row) => {
+      const organic = typeof row.organic === 'number' ? row.organic : 0;
+      const ai = typeof row.ai === 'number' ? row.ai : 0;
+      const social = typeof row.social === 'number' ? row.social : 0;
+      return { x: String(row.name), organic, ai, social };
+    });
+  }, [chartData]);
+  const socialTop3 = useMemo(() => {
+    const totals = socialSourceOptions.map((s) => {
+      const key = `social_${s.id}` as const;
+      const sum = chartData.reduce((acc, row) => {
+        const v = row[key];
+        return acc + (typeof v === 'number' ? v : 0);
+      }, 0);
+      return { id: s.id, label: s.label, sum };
+    });
+    return totals
+      .sort((a, b) => b.sum - a.sum)
+      .slice(0, 3)
+      .map((x) => x.id);
+  }, [chartData, socialSourceOptions]);
+  const socialOtherOptions = useMemo(() => {
+    const top = new Set<SocialSourceId>(socialTop3);
+    return socialSourceOptions.filter((s) => !top.has(s.id));
+  }, [socialSourceOptions, socialTop3]);
+
+  useEffect(() => {
+    const top = new Set<SocialSourceId>(socialTop3);
+    setSocialOtherSelected((prev) => {
+      const next: Record<SocialSourceId, boolean> = { ...prev };
+      socialSourceOptions.forEach((s) => {
+        if (top.has(s.id)) {
+          next[s.id] = false;
+        } else if (typeof next[s.id] !== 'boolean') {
+          next[s.id] = true;
+        }
+      });
+      return next;
+    });
+  }, [socialTop3, socialSourceOptions]);
 
   const tabs: Tab[] = [
     { id: 'data', label: 'Data Display', icon: BarChart2 },
@@ -608,7 +688,7 @@ export default function Performance() {
                 {[
                   "Why did my organic traffic drop yesterday?",
                   "How can I improve my Visibility Score?",
-                  "Which keywords have the highest negative sentiment?",
+                  "Which keywords have the most negative mentions?",
                   "Analyze the impact of my recent content update"
                 ].map((q, idx) => (
                   <button 
@@ -670,14 +750,25 @@ export default function Performance() {
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-2 h-2 rounded-full bg-blue-500"></div>
                       <div className="inline-flex items-center gap-1">
-                        <div className="text-xs text-gray-500 font-bold uppercase tracking-wider">ORGANIC</div>
+                        <div className="text-xs text-gray-500 font-bold tracking-wider">Organic Search</div>
                         <span className="relative group inline-flex items-center">
                           <HelpCircle size={12} className="text-gray-400" />
-                          <span className="absolute top-full left-0 mt-1 hidden group-hover:block bg-black text-white text-[10px] px-2 py-1 rounded shadow">占位</span>
+                          <span className="absolute top-full left-0 mt-2 hidden group-hover:block bg-black text-white text-[11px] px-3 py-2 rounded-lg shadow-lg whitespace-pre-line w-[380px] leading-snug z-50">
+                            {tooltipText.organicSearch}
+                          </span>
                         </span>
                       </div>
                     </div>
                     <div className="text-2xl font-bold text-gray-900 tracking-tight">{(!isGA4Connected) ? '?' : '12,500'}</div>
+                    <div className="mt-3 h-10 w-full pointer-events-none">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={trafficSparklineData} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
+                          <XAxis dataKey="x" hide />
+                          <YAxis hide domain={['dataMin', 'dataMax']} />
+                          <Line type="monotone" dataKey="organic" stroke="#3b82f6" strokeWidth={2} dot={false} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
                     
                   </div>
                   <div 
@@ -690,14 +781,25 @@ export default function Performance() {
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-2 h-2 rounded-full bg-green-500"></div>
                       <div className="inline-flex items-center gap-1">
-                        <div className="text-xs text-gray-500 font-bold uppercase tracking-wider">AI SEARCH</div>
+                        <div className="text-xs text-gray-500 font-bold tracking-wider">AI Referral</div>
                         <span className="relative group inline-flex items-center">
                           <HelpCircle size={12} className="text-gray-400" />
-                          <span className="absolute top-full left-0 mt-1 hidden group-hover:block bg-black text-white text-[10px] px-2 py-1 rounded shadow">占位</span>
+                          <span className="absolute top-full left-0 mt-2 hidden group-hover:block bg-black text-white text-[11px] px-3 py-2 rounded-lg shadow-lg whitespace-pre-line w-[380px] leading-snug z-50">
+                            {tooltipText.aiReferral}
+                          </span>
                         </span>
                       </div>
                     </div>
                     <div className="text-2xl font-bold text-gray-900 tracking-tight">{(!isGA4Connected) ? '?' : '1,200'}</div>
+                    <div className="mt-3 h-10 w-full pointer-events-none">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={trafficSparklineData} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
+                          <XAxis dataKey="x" hide />
+                          <YAxis hide domain={['dataMin', 'dataMax']} />
+                          <Line type="monotone" dataKey="ai" stroke="#10b981" strokeWidth={2} dot={false} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
                     
                   </div>
                   <div 
@@ -710,20 +812,31 @@ export default function Performance() {
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-2 h-2 rounded-full bg-purple-500"></div>
                       <div className="inline-flex items-center gap-1">
-                        <div className="text-xs text-gray-500 font-bold uppercase tracking-wider">SOCIAL MEDIA</div>
+                        <div className="text-xs text-gray-500 font-bold tracking-wider">Social Referral</div>
                         <span className="relative group inline-flex items-center">
                           <HelpCircle size={12} className="text-gray-400" />
-                          <span className="absolute top-full left-0 mt-1 hidden group-hover:block bg-black text-white text-[10px] px-2 py-1 rounded shadow">占位</span>
+                          <span className="absolute top-full left-0 mt-2 hidden group-hover:block bg-black text-white text-[11px] px-3 py-2 rounded-lg shadow-lg whitespace-pre-line w-[420px] leading-snug z-50">
+                            {tooltipText.socialReferral}
+                          </span>
                         </span>
                       </div>
                     </div>
                     <div className="text-2xl font-bold text-gray-900 tracking-tight">{(!isGA4Connected) ? '?' : '850'}</div>
+                    <div className="mt-3 h-10 w-full pointer-events-none">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={trafficSparklineData} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
+                          <XAxis dataKey="x" hide />
+                          <YAxis hide domain={['dataMin', 'dataMax']} />
+                          <Line type="monotone" dataKey="social" stroke="#8b5cf6" strokeWidth={2} dot={false} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
                     
                   </div>
                 </div>
-                <div className="h-[500px] w-full bg-white border border-gray-200 rounded-2xl p-6 shadow-sm relative overflow-hidden">
+                <div className="h-[420px] w-full bg-white border border-gray-200 rounded-2xl p-6 shadow-sm relative overflow-hidden flex flex-col">
                   <div className="absolute top-0 left-0 w-full h-0 bg-gradient-to-r from-blue-500 via-green-500 to-purple-500 opacity-20"></div>
-                  <div className="flex items-center justify-between mb-6 relative z-10">
+                  <div className="flex items-center justify-between mb-4 relative z-10">
                     <h4 className="font-bold text-gray-900 flex items-center gap-2">
                       <div className="p-1.5 rounded-lg bg-blue-100 text-blue-600">
                         <BarChart2 size={16} />
@@ -854,32 +967,193 @@ export default function Performance() {
                     )
                   )}
                   
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 500 }} dy={10} />
-                      <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 500 }} />
-                      <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 500 }} />
-                      <Tooltip 
-                        contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '12px', padding: '12px' }}
-                        cursor={{ stroke: '#cbd5e1', strokeWidth: 1, strokeDasharray: '4 4' }}
-                      />
-                      {activeTrafficSource === 'organic' && (
-                        <Line yAxisId="left" type="monotone" dataKey="organic" name="Total Traffic" stroke="#3b82f6" strokeWidth={3} dot={false} activeDot={{ r: 6, strokeWidth: 0 }} />
-                      )}
-                      {activeTrafficSource === 'ai' && (
-                        <Line yAxisId="right" type="monotone" dataKey="ai" name="AI Traffic" stroke="#10b981" strokeWidth={3} dot={false} />
-                      )}
-                      {activeTrafficSource === 'social' && (
-                        <Line yAxisId="right" type="monotone" dataKey="social" name="Social Traffic" stroke="#8b5cf6" strokeWidth={3} dot={false} />
-                      )}
-                    </LineChart>
-                  </ResponsiveContainer>
+                  <div className="flex-1 min-h-0 relative z-10">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 500 }} dy={10} />
+                        <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 500 }} />
+                        <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 500 }} />
+                        <Tooltip 
+                          contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '12px', padding: '12px' }}
+                          cursor={{ stroke: '#cbd5e1', strokeWidth: 1, strokeDasharray: '4 4' }}
+                        />
+                        {activeTrafficSource === 'organic' && (
+                          <Line
+                            yAxisId="left"
+                            type="monotone"
+                            dataKey={organicTrafficView === 'total' ? 'organic' : organicTrafficView}
+                            name={organicTrafficView === 'total' ? 'Total' : organicTrafficView === 'google' ? 'Google' : organicTrafficView === 'bing' ? 'Bing' : 'Direct'}
+                            stroke="#3b82f6"
+                            strokeWidth={3}
+                            dot={false}
+                            activeDot={{ r: 6, strokeWidth: 0 }}
+                          />
+                        )}
+                        {activeTrafficSource === 'ai' && (
+                          <Line
+                            yAxisId="right"
+                            type="monotone"
+                            dataKey={aiTrafficView === 'total' ? 'ai' : aiTrafficView === 'chatgpt' ? 'ai_chatgpt' : aiTrafficView === 'gemini' ? 'ai_gemini' : 'ai_claude'}
+                            name={aiTrafficView === 'total' ? 'Total' : aiTrafficView === 'chatgpt' ? 'ChatGPT' : aiTrafficView === 'gemini' ? 'Gemini' : 'Claude'}
+                            stroke="#10b981"
+                            strokeWidth={3}
+                            dot={false}
+                          />
+                        )}
+                        {activeTrafficSource === 'social' && (
+                          <Line
+                            yAxisId="right"
+                            type="monotone"
+                            dataKey={
+                              socialTrafficView === 'total'
+                                ? 'social'
+                                : socialTrafficView === 'other'
+                                  ? (row: TrafficChartRow) => {
+                                      let sum = 0;
+                                      socialOtherOptions.forEach((opt) => {
+                                        if (socialOtherSelected[opt.id]) {
+                                          const key = `social_${opt.id}` as const;
+                                          sum += typeof row[key] === 'number' ? row[key] : 0;
+                                        }
+                                      });
+                                      return sum;
+                                    }
+                                  : (`social_${socialTrafficView}` as const)
+                            }
+                            name={
+                              socialTrafficView === 'total'
+                                ? 'Total'
+                                : socialTrafficView === 'other'
+                                  ? 'Other'
+                                  : socialSourceOptions.find((s) => s.id === socialTrafficView)?.label ?? 'Other'
+                            }
+                            stroke="#8b5cf6"
+                            strokeWidth={3}
+                            dot={false}
+                          />
+                        )}
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                  {activeTrafficSource === 'organic' && (
+                    <div className="mt-3 relative z-10 flex justify-center">
+                      <div className="inline-flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-xl p-1">
+                        {([
+                          { id: 'total' as const, label: 'Total' },
+                          { id: 'google' as const, label: 'Google' },
+                          { id: 'bing' as const, label: 'Bing' },
+                          { id: 'direct' as const, label: 'Direct' },
+                        ]).map((opt) => (
+                          <button
+                            key={opt.id}
+                            onClick={() => setOrganicTrafficView(opt.id)}
+                            className={clsx(
+                              "px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
+                              organicTrafficView === opt.id ? "bg-white text-gray-900 shadow-sm border border-gray-200" : "text-gray-500 hover:text-gray-900"
+                            )}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {activeTrafficSource === 'ai' && (
+                    <div className="mt-3 relative z-10 flex justify-center">
+                      <div className="inline-flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-xl p-1">
+                        {([
+                          { id: 'total' as const, label: 'Total' },
+                          { id: 'chatgpt' as const, label: 'ChatGPT' },
+                          { id: 'gemini' as const, label: 'Gemini' },
+                          { id: 'claude' as const, label: 'Claude' },
+                        ]).map((opt) => (
+                          <button
+                            key={opt.id}
+                            onClick={() => setAiTrafficView(opt.id)}
+                            className={clsx(
+                              "px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
+                              aiTrafficView === opt.id ? "bg-white text-gray-900 shadow-sm border border-gray-200" : "text-gray-500 hover:text-gray-900"
+                            )}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {activeTrafficSource === 'social' && (
+                    <div className="mt-3 relative z-10 flex justify-center">
+                      <div className="inline-flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-xl p-1">
+                        <button
+                          onClick={() => { setSocialTrafficView('total'); setSocialOtherMenuOpen(false); }}
+                          className={clsx(
+                            "px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
+                            socialTrafficView === 'total' ? "bg-white text-gray-900 shadow-sm border border-gray-200" : "text-gray-500 hover:text-gray-900"
+                          )}
+                        >
+                          Total
+                        </button>
+                        {socialTop3.map((id) => {
+                          const label = socialSourceOptions.find((s) => s.id === id)?.label ?? id;
+                          return (
+                            <button
+                              key={id}
+                              onClick={() => { setSocialTrafficView(id); setSocialOtherMenuOpen(false); }}
+                              className={clsx(
+                                "px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
+                                socialTrafficView === id ? "bg-white text-gray-900 shadow-sm border border-gray-200" : "text-gray-500 hover:text-gray-900"
+                              )}
+                            >
+                              {label}
+                            </button>
+                          );
+                        })}
+                        <div className="relative">
+                          <button
+                            onClick={() => { setSocialTrafficView('other'); setSocialOtherMenuOpen((v) => !v); }}
+                            className={clsx(
+                              "px-3 py-1.5 rounded-lg text-xs font-bold transition-all inline-flex items-center gap-1",
+                              socialTrafficView === 'other' ? "bg-white text-gray-900 shadow-sm border border-gray-200" : "text-gray-500 hover:text-gray-900"
+                            )}
+                          >
+                            Other
+                            <ChevronDown size={12} className="opacity-70" />
+                          </button>
+                          {socialOtherMenuOpen && (
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 bg-white border border-gray-200 rounded-xl shadow-lg z-30 p-2">
+                              <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wider px-2 py-1">Select sources</div>
+                              <div className="max-h-56 overflow-auto">
+                                {socialOtherOptions.map((opt) => (
+                                  <label
+                                    key={opt.id}
+                                    className="flex items-center justify-between px-2 py-2 rounded-lg hover:bg-gray-50 cursor-pointer"
+                                  >
+                                    <span className="text-sm text-gray-700">{opt.label}</span>
+                                    <input
+                                      type="checkbox"
+                                      checked={!!socialOtherSelected[opt.id]}
+                                      onChange={(e) => {
+                                        const checked = e.target.checked;
+                                        setSocialTrafficView('other');
+                                        setSocialOtherSelected((prev) => ({ ...prev, [opt.id]: checked }));
+                                      }}
+                                      className="w-4 h-4 text-primary rounded border-gray-300 focus:ring-primary"
+                                    />
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
               </div>
 
-              {/* Right Column: Visibility & Sentiment */}
+              {/* Right Column: Visibility */}
               <div className="space-y-6 relative">
 
                 <div className={clsx((role === 'free') && "filter blur-sm select-none pointer-events-none")}>
@@ -889,7 +1163,7 @@ export default function Performance() {
                 </h3>
                 {role !== 'pending' && <div className="text-[11px] text-gray-400">Last updated: {lastUpdated}</div>}
                 
-                <div className="grid grid-cols-3 gap-4 h-[140px]">
+                <div className="grid grid-cols-2 gap-4 h-[140px]">
                   <div 
                     onClick={() => setActiveMetric('visibility')}
                     className={clsx(
@@ -904,10 +1178,12 @@ export default function Performance() {
                          <div className={clsx("p-2 rounded-lg transition-colors", activeMetric === 'visibility' ? "bg-orange-50 text-orange-600" : "bg-gray-50 text-gray-400 group-hover:bg-orange-50 group-hover:text-orange-600")}>
                            <Zap size={18} />
                          </div>
-                         <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">VISIBILITY</span>
+                         <span className="text-xs font-bold text-gray-500 tracking-wider">AI visibility</span>
                          <span className="relative group inline-flex items-center">
                            <HelpCircle size={12} className="text-gray-400" />
-                           <span className="absolute top-full left-0 mt-1 hidden group-hover:block bg-black text-white text-[10px] px-2 py-1 rounded shadow">占位</span>
+                           <span className="absolute top-full left-0 mt-2 hidden group-hover:block bg-black text-white text-[11px] px-3 py-2 rounded-lg shadow-lg whitespace-pre-line w-[380px] leading-snug z-50">
+                             {tooltipText.aiVisibility}
+                           </span>
                          </span>
                        </div>
                        {activeMetric === 'visibility' && <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></div>}
@@ -928,38 +1204,6 @@ export default function Performance() {
                   </div>
 
                   <div 
-                    onClick={() => setActiveMetric('sentiment')}
-                    className={clsx(
-                      "p-5 rounded-2xl border relative overflow-hidden group flex flex-col justify-between cursor-pointer transition-all duration-300",
-                      activeMetric === 'sentiment' 
-                        ? "bg-white border-indigo-200 shadow-md ring-1 ring-indigo-100" 
-                        : "bg-white border-gray-100 shadow-sm hover:shadow-md hover:border-indigo-100"
-                    )}
-                  >
-                    <div className="flex justify-between items-start z-10">
-                       <div className="flex items-center gap-2">
-                         <div className={clsx("p-2 rounded-lg transition-colors", activeMetric === 'sentiment' ? "bg-indigo-50 text-indigo-600" : "bg-gray-50 text-gray-400 group-hover:bg-indigo-50 group-hover:text-indigo-600")}>
-                           <MessageSquare size={18} />
-                         </div>
-                         <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">POSITIVE SENTIMENT</span>
-                         <span className="relative group inline-flex items-center">
-                           <HelpCircle size={12} className="text-gray-400" />
-                           <span className="absolute top-full left-0 mt-1 hidden group-hover:block bg-black text-white text-[10px] px-2 py-1 rounded shadow">占位</span>
-                         </span>
-                       </div>
-                       {activeMetric === 'sentiment' && <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></div>}
-                    </div>
-
-                    <div className="relative z-10 mt-2">
-                      <div className="text-3xl font-bold text-gray-900 tracking-tight">{isVisibilityActive ? '85%' : '?'}</div>
-                      
-                    </div>
-
-                    {/* Decor */}
-                    <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-indigo-50 rounded-full blur-2xl opacity-50 group-hover:opacity-100 transition-opacity"></div>
-                  </div>
-                  
-                  <div 
                     onClick={() => setActiveMetric('position')}
                     className={clsx(
                       "p-5 rounded-2xl border relative overflow-hidden group flex flex-col justify-between cursor-pointer transition-all duration-300",
@@ -973,10 +1217,12 @@ export default function Performance() {
                          <div className={clsx("p-2 rounded-lg transition-colors", activeMetric === 'position' ? "bg-purple-50 text-purple-600" : "bg-gray-50 text-gray-400 group-hover:bg-purple-50 group-hover:text-purple-600")}>
                            <Target size={18} />
                          </div>
-                         <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">POSITION</span>
+                         <span className="text-xs font-bold text-gray-500 tracking-wider">Position</span>
                          <span className="relative group inline-flex items-center">
                            <HelpCircle size={12} className="text-gray-400" />
-                           <span className="absolute top-full left-0 mt-1 hidden group-hover:block bg-black text-white text-[10px] px-2 py-1 rounded shadow">占位</span>
+                           <span className="absolute top-full left-0 mt-2 hidden group-hover:block bg-black text-white text-[11px] px-3 py-2 rounded-lg shadow-lg whitespace-pre-line w-[360px] leading-snug z-50">
+                             {tooltipText.position}
+                           </span>
                          </span>
                        </div>
                        {activeMetric === 'position' && <div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></div>}
@@ -992,10 +1238,10 @@ export default function Performance() {
                 <div className="h-[400px] bg-white border border-gray-200 rounded-2xl p-6 shadow-sm animate-in fade-in duration-300 relative overflow-visible">
                   <div className="flex items-center justify-between mb-6 relative z-10">
                     <h4 className="font-bold text-gray-900 flex items-center gap-2">
-                      <div className={clsx("p-1.5 rounded-lg", activeMetric === 'visibility' ? "bg-orange-100 text-orange-600" : "bg-indigo-100 text-indigo-600")}>
-                        {activeMetric === 'visibility' ? <TrendingUp size={16} /> : <MessageSquare size={16} />}
+                      <div className={clsx("p-1.5 rounded-lg", activeMetric === 'visibility' ? "bg-orange-100 text-orange-600" : "bg-purple-100 text-purple-600")}>
+                        {activeMetric === 'visibility' ? <TrendingUp size={16} /> : <Target size={16} />}
                       </div>
-                      {activeMetric === 'visibility' ? 'Visibility Trend' : activeMetric === 'sentiment' ? 'Sentiment Trend' : 'Position Trend'}
+                      {activeMetric === 'visibility' ? 'Visibility Trend' : 'Position Trend'}
                       
                     </h4>
                     <div className="relative flex items-center gap-2">
@@ -1032,15 +1278,6 @@ export default function Performance() {
                         { date: 'Sat', chatgpt: null, claude: null, perplexity: null },
                         { date: 'Sun', chatgpt: null, claude: null, perplexity: null },
                       ];
-                      const baseSentiment = [
-                        { date: 'Mon', positive: 70, neutral: 20, negative: 10 },
-                        { date: 'Tue', positive: 72, neutral: 18, negative: 10 },
-                        { date: 'Wed', positive: 68, neutral: 25, negative: 7 },
-                        { date: 'Thu', positive: 75, neutral: 20, negative: 5 },
-                        { date: 'Fri', positive: 78, neutral: 15, negative: 7 },
-                        { date: 'Sat', positive: null, neutral: null, negative: null },
-                        { date: 'Sun', positive: null, neutral: null, negative: null },
-                      ];
                       const basePosition = [
                         { date: 'Mon', position: 3.2 },
                         { date: 'Tue', position: 2.8 },
@@ -1050,12 +1287,11 @@ export default function Performance() {
                         { date: 'Sat', position: null },
                         { date: 'Sun', position: null },
                       ];
-                      const chartData = activeMetric === 'visibility' ? baseVisibility : activeMetric === 'sentiment' ? baseSentiment : basePosition;
-                      const keys = activeMetric === 'visibility' ? ['chatgpt','claude','perplexity'] : activeMetric === 'sentiment' ? ['positive','neutral','negative'] : ['position'];
+                      const chartData = activeMetric === 'visibility' ? baseVisibility : basePosition;
+                      const keys = activeMetric === 'visibility' ? ['chatgpt','claude','perplexity'] : ['position'];
                       const lastNonNullIndex = [...chartData].reverse().findIndex((d) => keys.some((k) => (d as unknown as Record<string, number | undefined>)[k] != null));
                       const resolvedLastIndex = lastNonNullIndex === -1 ? -1 : chartData.length - 1 - lastNonNullIndex;
                       const missingStartIndex = resolvedLastIndex >= 0 && resolvedLastIndex < chartData.length - 1 ? resolvedLastIndex + 1 : -1;
-                      const lastUpdateLabel = resolvedLastIndex >= 0 ? chartData[resolvedLastIndex].date : null;
                       const missingLeftPct = missingStartIndex >= 0 ? (missingStartIndex / chartData.length) * 100 : 0;
                       const missingWidthPct = missingStartIndex >= 0 ? ((chartData.length - missingStartIndex) / chartData.length) * 100 : 0;
                       return (
@@ -1080,7 +1316,6 @@ export default function Performance() {
                           contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '12px', padding: '12px' }}
                           cursor={{ stroke: '#cbd5e1', strokeWidth: 1, strokeDasharray: '4 4' }}
                         />
-                        <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '12px', fontWeight: 500 }} iconType="circle" />
                         
                         {activeMetric === 'visibility' ? (
                           <>
@@ -1094,16 +1329,8 @@ export default function Performance() {
                               <Line type="monotone" dataKey="perplexity" name="Gemini" stroke="#22b8cf" strokeWidth={3} dot={false} />
                             )}
                           </>
-                        ) : activeMetric === 'sentiment' ? (
-                          <>
-                            <Line type="monotone" dataKey="positive" name="Positive %" stroke="#4f46e5" strokeWidth={3} dot={false} activeDot={{ r: 6, strokeWidth: 0 }} />
-                            <Line type="monotone" dataKey="neutral" name="Neutral %" stroke="#9ca3af" strokeWidth={3} dot={false} />
-                            <Line type="monotone" dataKey="negative" name="Negative %" stroke="#ef4444" strokeWidth={3} dot={false} />
-                          </>
                         ) : (
-                          <>
-                            <Line type="monotone" dataKey="position" name="Average Position" stroke="#8b5cf6" strokeWidth={3} dot={false} activeDot={{ r: 6, strokeWidth: 0 }} />
-                          </>
+                          <Line type="monotone" dataKey="position" name="Average Position" stroke="#8b5cf6" strokeWidth={3} dot={false} activeDot={{ r: 6, strokeWidth: 0 }} />
                         )}
                             </LineChart>
                           </ResponsiveContainer>
@@ -1248,17 +1475,6 @@ export default function Performance() {
                    </div>
                    Query Attribution
                  </h4>
-                 {!isEditMode && (
-                    <button
-                      onClick={() => {
-                        setIsEditMode(true);
-                        setDataDraft(makeDraft(attributionData));
-                      }}
-                      className="text-xs font-bold text-indigo-600 hover:bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-200 transition-colors flex items-center gap-2"
-                    >
-                      <Edit2 size={14} /> Edit
-                    </button>
-                 )}
                </div>
                <div className="flex justify-between items-center mb-2">
                  <div className="text-xs text-gray-400">Last updated: {lastUpdated}</div>
@@ -1268,17 +1484,34 @@ export default function Performance() {
                  <thead>
                   <tr className="border-b border-gray-100">
                     <th className="p-4 font-semibold text-gray-500 text-sm min-w-[300px]">Keyword / Query</th>
-                    <th className="p-3 font-semibold text-gray-500 text-sm text-center min-w-[180px]">AI Platforms</th>
-                    <th className="p-3 font-semibold text-gray-500 text-sm text-center min-w-[120px]">Sentiment</th>
-                    <th className="p-3 font-semibold text-gray-500 text-sm text-center min-w-[140px]">Visibility Score</th>
-                    <th className="p-3 font-semibold text-gray-500 text-sm text-center min-w-[120px]">Average Position</th>
+                    <th className="p-3 font-semibold text-gray-500 text-sm text-center min-w-[180px]">
+                      <span className="inline-flex items-center justify-center gap-1 w-full">
+                        AI visibility
+                        <span className="relative group inline-flex items-center">
+                          <HelpCircle size={12} className="text-gray-400" />
+                          <span className="absolute top-full left-0 mt-2 hidden group-hover:block bg-black text-white text-[11px] px-3 py-2 rounded-lg shadow-lg whitespace-pre-line w-[380px] leading-snug z-50 text-left">
+                            {tooltipText.aiVisibility}
+                          </span>
+                        </span>
+                      </span>
+                    </th>
+                    <th className="p-3 font-semibold text-gray-500 text-sm text-center min-w-[120px]">
+                      <span className="inline-flex items-center justify-center gap-1 w-full">
+                        Position
+                        <span className="relative group inline-flex items-center">
+                          <HelpCircle size={12} className="text-gray-400" />
+                          <span className="absolute top-full left-0 mt-2 hidden group-hover:block bg-black text-white text-[11px] px-3 py-2 rounded-lg shadow-lg whitespace-pre-line w-[360px] leading-snug z-50 text-left">
+                            {tooltipText.position}
+                          </span>
+                        </span>
+                      </span>
+                    </th>
                     <th className="p-3 font-semibold text-gray-500 text-sm text-center min-w-[80px]"></th>
                   </tr>
                  </thead>
                  <tbody>
                  {(isEditMode && dataDraft ? dataDraft : attributionData).map(group => {
                    let gMentioned = 0;
-                   let gNegative = 0;
                    let gTotal = 0;
                    let gPosSum = 0;
                    let gPosCount = 0;
@@ -1294,117 +1527,93 @@ export default function Performance() {
                            gPosCount++;
                          }
                        }
-                       if (st === 'negative') gNegative++;
                      });
                    });
                    const groupVisibility = gTotal > 0 ? Math.round((gMentioned / gTotal) * 100) : 0;
                    const groupAvgPosition = gPosCount > 0 ? (gPosSum / gPosCount) : null;
-                   let groupSentiment: 'Positive' | 'Negative' = 'Positive';
-                   if (gNegative > gMentioned) {
-                     groupSentiment = 'Negative';
-                   } else {
-                     groupSentiment = 'Positive';
-                   }
                     return (
                      <React.Fragment key={group.id}>
-                       {/* Keyword Row */}
                        <tr 
                          className="bg-gray-50 hover:bg-gray-100 cursor-pointer border-b border-gray-100 transition-colors"
                          onClick={() => toggleKeyword(group.id)}
                        >
-                        <td colSpan={6} className="p-4 font-bold text-gray-800">
-                          <div className="grid grid-cols-[minmax(300px,1fr)_180px_120px_140px_120px_80px] items-center gap-3">
-                            <div className="flex items-center gap-2">
-                              {expandedKeywords.includes(group.id) ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                              {isEditMode && editingGroupId === group.id ? (
-                                <input
-                                  value={editingGroupValue}
-                                  onChange={(e) => setEditingGroupValue(e.target.value)}
-                                  onBlur={handleApplyEditGroup}
-                                  onKeyDown={(e) => { if (e.key === 'Enter') handleApplyEditGroup(); }}
-                                  className="px-2 py-1 border border-gray-300 rounded-md text-sm"
-                                />
-                              ) : (
-                                <>
-                                  {group.keyword}
-                                  <span className="text-xs font-normal text-gray-400 ml-2">({group.queries.length} queries)</span>
-                                </>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-2 justify-end">
-                              {isEditMode && (
-                                <>
-                                  <button
-                                    className="p-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleAddQueryToGroup(group.id);
-                                    }}
-                                    title="Add query"
-                                  >
-                                    <Plus size={14} />
-                                  </button>
-                                  <button
-                                    className="p-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50"
-                                    onClick={() => handleStartEditGroup(group)}
-                                    title="Edit group"
-                                  >
-                                    <Edit2 size={14} />
-                                  </button>
-                                  <button
-                                    className="p-1.5 border border-gray-200 rounded-lg text-red-600 hover:bg-red-50"
-                                    onClick={() => handleDeleteGroup(group.id)}
-                                    title="Delete group"
-                                  >
-                                    <Trash2 size={14} />
-                                  </button>
-                                </>
-                              )}
-                            </div>
-                            <div>
-                              <span className={clsx(
-                                "text-[10px] font-bold px-2 py-0.5 rounded-full border",
-                                groupSentiment === 'Positive' && "bg-green-50 text-green-700 border-green-200",
-                                groupSentiment === 'Negative' && "bg-red-50 text-red-700 border-red-200"
-                              )}>
-                                {groupSentiment}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-bold text-gray-700">{groupVisibility}%</span>
-                              <div className="w-24 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                                <div 
-                                  className={clsx(
-                                    "h-full rounded-full transition-all duration-500",
-                                    groupVisibility >= 80 ? "bg-green-500" : 
-                                    groupVisibility >= 50 ? "bg-yellow-500" : "bg-red-500"
-                                  )} 
-                                  style={{ width: `${groupVisibility}%` }}
-                                ></div>
-                              </div>
-                            </div>
-                            <div className="text-xs font-bold text-gray-700">
-                              {groupAvgPosition != null ? `#${groupAvgPosition.toFixed(1)}` : '—'}
-                            </div>
-                          </div>
-                        </td>
+                         <td className="p-4 font-bold text-gray-800 border-r border-gray-50 align-middle">
+                           <div className="flex items-center gap-2">
+                             {expandedKeywords.includes(group.id) ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                             {isEditMode && editingGroupId === group.id ? (
+                               <input
+                                 value={editingGroupValue}
+                                 onChange={(e) => setEditingGroupValue(e.target.value)}
+                                 onBlur={handleApplyEditGroup}
+                                 onKeyDown={(e) => { if (e.key === 'Enter') handleApplyEditGroup(); }}
+                                 className="px-2 py-1 border border-gray-300 rounded-md text-sm"
+                               />
+                             ) : (
+                               <>
+                                 {group.keyword}
+                                 <span className="text-xs font-normal text-gray-400 ml-2">({group.queries.length} queries)</span>
+                               </>
+                             )}
+                           </div>
+                         </td>
+                         <td className="p-4 align-middle">
+                           <div className="flex items-center justify-center gap-2">
+                             <span className="text-xs font-bold text-gray-700">{groupVisibility}%</span>
+                             <div className="w-24 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                               <div
+                                 className={clsx(
+                                   "h-full rounded-full transition-all duration-500",
+                                   groupVisibility >= 80 ? "bg-green-500" :
+                                   groupVisibility >= 50 ? "bg-yellow-500" : "bg-red-500"
+                                 )}
+                                 style={{ width: `${groupVisibility}%` }}
+                               ></div>
+                             </div>
+                           </div>
+                         </td>
+                         <td className="p-4 align-middle text-center">
+                           <span className="text-sm font-bold text-gray-800">
+                             {groupAvgPosition != null ? `#${groupAvgPosition.toFixed(1)}` : '—'}
+                           </span>
+                         </td>
+                         <td className="p-4 align-middle text-center">
+                           <div className="flex items-center justify-center gap-2">
+                             {isEditMode && (
+                               <>
+                                 <button
+                                   className="p-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50"
+                                   onClick={(e) => {
+                                     e.stopPropagation();
+                                     handleAddQueryToGroup(group.id);
+                                   }}
+                                   title="Add query"
+                                 >
+                                   <Plus size={14} />
+                                 </button>
+                                 <button
+                                   className="p-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50"
+                                   onClick={() => handleStartEditGroup(group)}
+                                   title="Edit group"
+                                 >
+                                   <Edit2 size={14} />
+                                 </button>
+                                 <button
+                                   className="p-1.5 border border-gray-200 rounded-lg text-red-600 hover:bg-red-50"
+                                   onClick={() => handleDeleteGroup(group.id)}
+                                   title="Delete group"
+                                 >
+                                   <Trash2 size={14} />
+                                 </button>
+                               </>
+                             )}
+                           </div>
+                         </td>
                        </tr>
                        
                        {/* Query Rows */}
                        {expandedKeywords.includes(group.id) && group.queries.map(query => {
                          const isRowSelected = selectedCell?.query === query.text;
                          
-                         // Calculate Query-level Visibility
-                         let qMentioned = 0;
-                         let qTotal = 0;
-                         let qNegative = 0;
-                         platforms.forEach(p => {
-                           const st = query.platforms?.[p.id];
-                           if (st !== 'not_mentioned') qMentioned++;
-                           if (st === 'negative') qNegative++;
-                           qTotal++;
-                         });
-                         const queryVisibility = qTotal > 0 ? Math.round((qMentioned / qTotal) * 100) : 0;
                          let posSum = 0;
                          let posCount = 0;
                          platforms.forEach(p => {
@@ -1416,14 +1625,6 @@ export default function Performance() {
                            }
                          });
                          const queryAvgPosition = posCount > 0 ? (posSum / posCount) : null;
-                         
-                         // Derive simple Sentiment label
-                         let sentimentLabel: 'Positive' | 'Negative' = 'Positive';
-                         if (qNegative > qMentioned) {
-                           sentimentLabel = 'Negative';
-                         } else {
-                           sentimentLabel = 'Positive';
-                         }
                          
                          const isNewQuery = newlyAddedQueryIds.has(query.id);
                          
@@ -1516,42 +1717,6 @@ export default function Performance() {
                                  </div>
                                )}
                               </td>
-                              {/* Sentiment */}
-                              <td className="p-4 align-middle text-center">
-                               {isNewQuery ? (
-                                 <div className="text-gray-400 text-sm">—</div>
-                               ) : (
-                                <span className={clsx(
-                                  "text-xs font-bold px-2 py-1 rounded-full border",
-                                  sentimentLabel === 'Positive' && "bg-green-50 text-green-700 border-green-200",
-                                  sentimentLabel === 'Negative' && "bg-red-50 text-red-700 border-red-200"
-                                )}>
-                                  {sentimentLabel}
-                                </span>
-                               )}
-                              </td>
-                               {/* Visibility Score */}
-                               <td className="p-4 align-middle">
-                               {isNewQuery ? (
-                                 <div className="flex justify-center text-gray-400 text-sm">—</div>
-                               ) : (
-                                 <div className="flex flex-col items-center gap-2">
-                                   <div className="flex items-center gap-2 w-full max-w-[120px]">
-                                     <div className="text-xs font-bold text-gray-700 w-8 text-right">{queryVisibility}%</div>
-                                     <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                                       <div 
-                                         className={clsx(
-                                           "h-full rounded-full transition-all duration-500",
-                                           queryVisibility >= 80 ? "bg-green-500" : 
-                                           queryVisibility >= 50 ? "bg-yellow-500" : "bg-red-500"
-                                         )} 
-                                         style={{ width: `${queryVisibility}%` }}
-                                       ></div>
-                                     </div>
-                                   </div>
-                                 </div>
-                               )}
-                               </td>
                                {/* Average Position */}
                                <td className="p-4 align-middle text-center">
                                  <span className="text-sm font-bold text-gray-800">
@@ -1577,7 +1742,7 @@ export default function Performance() {
                              {/* Expandable Detail Panel */}
                              {isRowSelected && selectedCell && (
                                <tr className="animate-in fade-in zoom-in duration-200">
-                                 <td colSpan={6} className="p-0 border-b border-gray-200">
+                                 <td colSpan={4} className="p-0 border-b border-gray-200">
                                    <div className="bg-white p-6 border-l-4 border-primary relative shadow-inner">
                                       <div className="flex justify-between items-start mb-6">
                                         <div className="flex items-center gap-3">
@@ -1644,9 +1809,6 @@ export default function Performance() {
                                                     </div>
                                                   </div>
                                                   <div className="flex items-center gap-2">
-                                                    <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full border border-green-100">
-                                                      Positive
-                                                    </span>
                                                     <button className="text-primary opacity-0 group-hover:opacity-100 p-1.5 hover:bg-primary/5 rounded-md transition-all" title="Open Link">
                                                       <ExternalLink size={14} />
                                                     </button>
@@ -1664,7 +1826,6 @@ export default function Performance() {
                                                     </div>
                                                   </div>
                                                   <div className="flex items-center gap-2">
-                                                    <span className="text-xs font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full border border-gray-200">Neutral</span>
                                                     <button className="text-primary opacity-0 group-hover:opacity-100 p-1.5 hover:bg-primary/5 rounded-md transition-all" title="Open Link">
                                                       <ExternalLink size={14} />
                                                     </button>
@@ -1731,7 +1892,7 @@ export default function Performance() {
                                             ) : selectedCell.status === 'negative' ? (
                                               <>
                                                 <p className="text-sm text-gray-600 mb-4 leading-relaxed">
-                                                  Negative sentiment detected. It's recommended to draft an official response addressing the concerns raised in the source links.
+                                                  Negative mention detected. It's recommended to draft an official response addressing the concerns raised in the source links.
                                                 </p>
                                                 <button className="w-full bg-red-600 text-white py-2.5 rounded-lg font-bold hover:bg-red-700 transition-colors flex items-center justify-center gap-2 shadow-md shadow-red-200">
                                                   <AlertTriangle size={16} /> Draft Response
@@ -1761,7 +1922,7 @@ export default function Performance() {
                        {/* Add New Query Input Row */}
                        {isEditMode && addingQueryGroupId === group.id && (
                          <tr>
-                           <td className="p-4 pl-12 text-sm text-gray-600 font-medium border-r border-gray-50 align-middle" colSpan={6}>
+                           <td className="p-4 pl-12 text-sm text-gray-600 font-medium border-r border-gray-50 align-middle" colSpan={4}>
                              <input
                                value={addingQueryValue}
                                onChange={(e) => setAddingQueryValue(e.target.value)}
@@ -2438,7 +2599,6 @@ export default function Performance() {
                     <th className="px-4 py-3 font-semibold text-gray-600 w-32">Platform</th>
                     <th className="px-4 py-3 font-semibold text-gray-600 w-24 text-center">Status</th>
                     <th className="px-4 py-3 font-semibold text-gray-600 w-24 text-center">Rank</th>
-                    <th className="px-4 py-3 font-semibold text-gray-600 w-28 text-center">Sentiment</th>
                     <th className="px-4 py-3 font-semibold text-gray-600 w-48">Competitors Mentioned</th>
                     <th className="px-4 py-3 font-semibold text-gray-600">Mention Snippet</th>
                   </tr>
@@ -2448,25 +2608,25 @@ export default function Performance() {
                     { 
                       date: 'May 24, 2024', 
                       platforms: [
-                        { name: 'ChatGPT', status: 'mentioned', rank: 2, sentiment: 85, competitors: ['Competitor A', 'Competitor B'], snippet: '"WorkfxAI is a strong contender in the AI analytics space, offering unique visibility metrics..."' },
-                        { name: 'Claude', status: 'mentioned', rank: 3, sentiment: 78, competitors: ['Competitor A'], snippet: '"While Competitor A is popular, WorkfxAI provides more granular data on AI traffic sources."' },
-                        { name: 'Gemini', status: 'not_mentioned', rank: null, sentiment: null, competitors: ['Competitor A', 'Competitor C'], snippet: '—' }
+                        { name: 'ChatGPT', status: 'mentioned', rank: 2, competitors: ['Competitor A', 'Competitor B'], snippet: '"WorkfxAI is a strong contender in the AI analytics space, offering unique visibility metrics..."' },
+                        { name: 'Claude', status: 'mentioned', rank: 3, competitors: ['Competitor A'], snippet: '"While Competitor A is popular, WorkfxAI provides more granular data on AI traffic sources."' },
+                        { name: 'Gemini', status: 'not_mentioned', rank: null, competitors: ['Competitor A', 'Competitor C'], snippet: '—' }
                       ]
                     },
                     { 
                       date: 'May 17, 2024', 
                       platforms: [
-                        { name: 'ChatGPT', status: 'mentioned', rank: 3, sentiment: 82, competitors: ['Competitor A'], snippet: '"Tools like WorkfxAI help marketers track dark social traffic effectively."' },
-                        { name: 'Claude', status: 'not_mentioned', rank: null, sentiment: null, competitors: ['Competitor A', 'Competitor B'], snippet: '—' },
-                        { name: 'Gemini', status: 'negative', rank: 5, sentiment: 35, competitors: ['Competitor C'], snippet: '"Some users report that WorkfxAI has a steeper learning curve compared to Competitor C."' }
+                        { name: 'ChatGPT', status: 'mentioned', rank: 3, competitors: ['Competitor A'], snippet: '"Tools like WorkfxAI help marketers track dark social traffic effectively."' },
+                        { name: 'Claude', status: 'not_mentioned', rank: null, competitors: ['Competitor A', 'Competitor B'], snippet: '—' },
+                        { name: 'Gemini', status: 'negative', rank: 5, competitors: ['Competitor C'], snippet: '"Some users report that WorkfxAI has a steeper learning curve compared to Competitor C."' }
                       ]
                     },
                     { 
                       date: 'May 10, 2024', 
                       platforms: [
-                        { name: 'ChatGPT', status: 'not_mentioned', rank: null, sentiment: null, competitors: ['Competitor A', 'Competitor B'], snippet: '—' },
-                        { name: 'Claude', status: 'not_mentioned', rank: null, sentiment: null, competitors: ['Competitor A'], snippet: '—' },
-                        { name: 'Gemini', status: 'not_mentioned', rank: null, sentiment: null, competitors: ['Competitor C'], snippet: '—' }
+                        { name: 'ChatGPT', status: 'not_mentioned', rank: null, competitors: ['Competitor A', 'Competitor B'], snippet: '—' },
+                        { name: 'Claude', status: 'not_mentioned', rank: null, competitors: ['Competitor A'], snippet: '—' },
+                        { name: 'Gemini', status: 'not_mentioned', rank: null, competitors: ['Competitor C'], snippet: '—' }
                       ]
                     }
                   ].map((row, i) => (
@@ -2493,31 +2653,6 @@ export default function Performance() {
                           </td>
                           <td className="px-4 py-3 text-center font-bold text-gray-700 align-top">
                             {platform.rank ? `#${platform.rank}` : '—'}
-                          </td>
-                          <td className="px-4 py-3 text-center align-top">
-                            {platform.sentiment !== null ? (
-                              <div className="flex flex-col items-center gap-1">
-                                <span className={clsx(
-                                  "text-xs font-bold",
-                                  platform.sentiment >= 70 ? "text-green-600" :
-                                  platform.sentiment >= 40 ? "text-yellow-600" : "text-red-600"
-                                )}>
-                                  {platform.sentiment}%
-                                </span>
-                                <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                                  <div 
-                                    className={clsx(
-                                      "h-full rounded-full",
-                                      platform.sentiment >= 70 ? "bg-green-500" : 
-                                      platform.sentiment >= 40 ? "bg-yellow-500" : "bg-red-500"
-                                    )} 
-                                    style={{ width: `${platform.sentiment}%` }}
-                                  ></div>
-                                </div>
-                              </div>
-                            ) : (
-                              <span className="text-gray-400">—</span>
-                            )}
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-600 align-top">
                             {platform.competitors.length > 0 ? (
