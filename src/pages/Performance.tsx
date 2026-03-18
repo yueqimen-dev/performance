@@ -66,6 +66,25 @@ interface KeywordGroup {
   queries: Query[];
 }
 
+const baseVisibility = [
+  { date: 'Mon', chatgpt: 45, claude: 30, perplexity: 55 },
+  { date: 'Tue', chatgpt: 50, claude: 35, perplexity: 52 },
+  { date: 'Wed', chatgpt: 55, claude: 40, perplexity: 58 },
+  { date: 'Thu', chatgpt: 60, claude: 45, perplexity: 62 },
+  { date: 'Fri', chatgpt: 65, claude: 42, perplexity: 65 },
+  { date: 'Sat', chatgpt: null, claude: null, perplexity: null },
+  { date: 'Sun', chatgpt: null, claude: null, perplexity: null },
+];
+const basePosition = [
+  { date: 'Mon', position: 3.2 },
+  { date: 'Tue', position: 2.8 },
+  { date: 'Wed', position: 3.5 },
+  { date: 'Thu', position: 2.4 },
+  { date: 'Fri', position: 2.1 },
+  { date: 'Sat', position: null },
+  { date: 'Sun', position: null },
+];
+
 export default function Performance() {
   const { role, isGA4Connected, setGA4Connected, setRole } = useUserStore();
   const { setChatOpen, setSidebarCollapsed, setInitialMessage } = useLayoutStore();
@@ -482,8 +501,8 @@ EN  The average position your brand appears at when mentioned in an AI response.
   };
 
   type TrafficChartRow = { name: string } & Record<string, number | string>;
-
-  const getChartData = (): TrafficChartRow[] => {
+  const chartData = useMemo((): TrafficChartRow[] => {
+    if (role === 'pending') return [];
     switch(timeRange) {
       case '24h':
         return [
@@ -512,9 +531,7 @@ EN  The average position your brand appears at when mentioned in an AI response.
           { name: 'Day 7', organic: 3490, google: 2150, bing: 500, direct: 840, ai: 430, ai_chatgpt: 230, ai_gemini: 110, ai_claude: 90, social: 720, social_reddit: 260, social_x: 185, social_youtube: 135, social_linkedin: 78, social_tiktok: 35, social_instagram: 20, social_facebook: 5, social_pinterest: 1, social_quora: 1 },
         ];
     }
-  };
-
-  const chartData = getChartData();
+  }, [role, timeRange]);
   const trafficSparklineData = useMemo(() => {
     return chartData.map((row) => {
       const organic = typeof row.organic === 'number' ? row.organic : 0;
@@ -556,6 +573,18 @@ EN  The average position your brand appears at when mentioned in an AI response.
       return next;
     });
   }, [socialTop3, socialSourceOptions]);
+
+  const visSparklineData = useMemo(() => {
+    return baseVisibility.map(d => {
+      const vals = [d.chatgpt, d.claude, d.perplexity].filter(v => v !== null) as number[];
+      const avg = vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+      return { x: d.date, value: avg };
+    });
+  }, []);
+
+  const posSparklineData = useMemo(() => {
+    return basePosition.map(d => ({ x: d.date, value: d.position ?? 0 }));
+  }, []);
 
   const tabs: Tab[] = [
     { id: 'data', label: 'Data Display', icon: BarChart2 },
@@ -759,16 +788,22 @@ EN  The average position your brand appears at when mentioned in an AI response.
                         </span>
                       </div>
                     </div>
-                    <div className="text-2xl font-bold text-gray-900 tracking-tight">{(!isGA4Connected) ? '?' : '12,500'}</div>
-                    <div className="mt-3 h-10 w-full pointer-events-none">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={trafficSparklineData} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
-                          <XAxis dataKey="x" hide />
-                          <YAxis hide domain={['dataMin', 'dataMax']} />
-                          <Line type="monotone" dataKey="organic" stroke="#3b82f6" strokeWidth={2} dot={false} />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </div>
+                    <div className="text-2xl font-bold text-gray-900 tracking-tight">{role === 'pending' ? '—' : (!isGA4Connected) ? '?' : '12,500'}</div>
+                    {role === 'pending' ? (
+                      <div className="mt-3 h-10 w-full flex items-center">
+                        <div className="h-px w-full bg-gray-200"></div>
+                      </div>
+                    ) : (
+                      <div className="mt-3 h-10 w-full pointer-events-none">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={trafficSparklineData} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
+                            <XAxis dataKey="x" hide />
+                            <YAxis hide domain={['dataMin', 'dataMax']} />
+                            <Line type="monotone" dataKey="organic" stroke="#3b82f6" strokeWidth={2} dot={false} />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
                     
                   </div>
                   <div 
@@ -790,16 +825,22 @@ EN  The average position your brand appears at when mentioned in an AI response.
                         </span>
                       </div>
                     </div>
-                    <div className="text-2xl font-bold text-gray-900 tracking-tight">{(!isGA4Connected) ? '?' : '1,200'}</div>
-                    <div className="mt-3 h-10 w-full pointer-events-none">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={trafficSparklineData} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
-                          <XAxis dataKey="x" hide />
-                          <YAxis hide domain={['dataMin', 'dataMax']} />
-                          <Line type="monotone" dataKey="ai" stroke="#10b981" strokeWidth={2} dot={false} />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </div>
+                    <div className="text-2xl font-bold text-gray-900 tracking-tight">{role === 'pending' ? '—' : (!isGA4Connected) ? '?' : '1,200'}</div>
+                    {role === 'pending' ? (
+                      <div className="mt-3 h-10 w-full flex items-center">
+                        <div className="h-px w-full bg-gray-200"></div>
+                      </div>
+                    ) : (
+                      <div className="mt-3 h-10 w-full pointer-events-none">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={trafficSparklineData} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
+                            <XAxis dataKey="x" hide />
+                            <YAxis hide domain={['dataMin', 'dataMax']} />
+                            <Line type="monotone" dataKey="ai" stroke="#10b981" strokeWidth={2} dot={false} />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
                     
                   </div>
                   <div 
@@ -821,16 +862,22 @@ EN  The average position your brand appears at when mentioned in an AI response.
                         </span>
                       </div>
                     </div>
-                    <div className="text-2xl font-bold text-gray-900 tracking-tight">{(!isGA4Connected) ? '?' : '850'}</div>
-                    <div className="mt-3 h-10 w-full pointer-events-none">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={trafficSparklineData} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
-                          <XAxis dataKey="x" hide />
-                          <YAxis hide domain={['dataMin', 'dataMax']} />
-                          <Line type="monotone" dataKey="social" stroke="#8b5cf6" strokeWidth={2} dot={false} />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </div>
+                    <div className="text-2xl font-bold text-gray-900 tracking-tight">{role === 'pending' ? '—' : (!isGA4Connected) ? '?' : '850'}</div>
+                    {role === 'pending' ? (
+                      <div className="mt-3 h-10 w-full flex items-center">
+                        <div className="h-px w-full bg-gray-200"></div>
+                      </div>
+                    ) : (
+                      <div className="mt-3 h-10 w-full pointer-events-none">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={trafficSparklineData} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
+                            <XAxis dataKey="x" hide />
+                            <YAxis hide domain={['dataMin', 'dataMax']} />
+                            <Line type="monotone" dataKey="social" stroke="#8b5cf6" strokeWidth={2} dot={false} />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
                     
                   </div>
                 </div>
@@ -1191,12 +1238,22 @@ EN  The average position your brand appears at when mentioned in an AI response.
                     
                     <div className="relative z-10 mt-2">
                       <div className="flex items-end justify-between">
-                      <div className="text-3xl font-bold text-gray-900 tracking-tight">{isVisibilityActive ? '72%' : '?'}</div>
+                      <div className="text-3xl font-bold text-gray-900 tracking-tight">{role === 'pending' ? '—' : isVisibilityActive ? '72%' : '?'}</div>
                       <div className="text-xs font-medium text-gray-400 mb-1">
-                        {isVisibilityActive ? '252/350' : '-/-'}
+                        {role === 'pending' ? '—' : isVisibilityActive ? '252/350' : '-/-'}
                       </div>
                     </div>
-                      
+                      {activeMetric === 'visibility' && role !== 'pending' && (
+                        <div className="mt-3 h-10 w-full pointer-events-none">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={visSparklineData} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
+                              <XAxis dataKey="x" hide />
+                              <YAxis hide domain={['dataMin', 'dataMax']} />
+                              <Line type="monotone" dataKey="value" stroke="#f97316" strokeWidth={2} dot={false} />
+                            </LineChart>
+                          </ResponsiveContainer>
+                        </div>
+                      )}
                     </div>
                     
                     {/* Decor */}
@@ -1228,7 +1285,18 @@ EN  The average position your brand appears at when mentioned in an AI response.
                        {activeMetric === 'position' && <div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></div>}
                     </div>
                     <div className="relative z-10 mt-2">
-                      <div className="text-3xl font-bold text-gray-900 tracking-tight">{isVisibilityActive ? '#2.8' : '?'}</div>
+                      <div className="text-3xl font-bold text-gray-900 tracking-tight">{role === 'pending' ? '—' : isVisibilityActive ? '#2.8' : '?'}</div>
+                      {activeMetric === 'position' && role !== 'pending' && (
+                        <div className="mt-3 h-10 w-full pointer-events-none">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={posSparklineData} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
+                              <XAxis dataKey="x" hide />
+                              <YAxis hide domain={['dataMin', 'dataMax']} />
+                              <Line type="monotone" dataKey="value" stroke="#8b5cf6" strokeWidth={2} dot={false} />
+                            </LineChart>
+                          </ResponsiveContainer>
+                        </div>
+                      )}
                     </div>
                     <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-purple-50 rounded-full blur-2xl opacity-50 group-hover:opacity-100 transition-opacity"></div>
                   </div>
@@ -1269,24 +1337,6 @@ EN  The average position your brand appears at when mentioned in an AI response.
                     </div>
                   )}
                     {(() => {
-                      const baseVisibility = [
-                        { date: 'Mon', chatgpt: 45, claude: 30, perplexity: 55 },
-                        { date: 'Tue', chatgpt: 50, claude: 35, perplexity: 52 },
-                        { date: 'Wed', chatgpt: 55, claude: 40, perplexity: 58 },
-                        { date: 'Thu', chatgpt: 60, claude: 45, perplexity: 62 },
-                        { date: 'Fri', chatgpt: 65, claude: 42, perplexity: 65 },
-                        { date: 'Sat', chatgpt: null, claude: null, perplexity: null },
-                        { date: 'Sun', chatgpt: null, claude: null, perplexity: null },
-                      ];
-                      const basePosition = [
-                        { date: 'Mon', position: 3.2 },
-                        { date: 'Tue', position: 2.8 },
-                        { date: 'Wed', position: 3.5 },
-                        { date: 'Thu', position: 2.4 },
-                        { date: 'Fri', position: 2.1 },
-                        { date: 'Sat', position: null },
-                        { date: 'Sun', position: null },
-                      ];
                       const chartData = activeMetric === 'visibility' ? baseVisibility : basePosition;
                       const keys = activeMetric === 'visibility' ? ['chatgpt','claude','perplexity'] : ['position'];
                       const lastNonNullIndex = [...chartData].reverse().findIndex((d) => keys.some((k) => (d as unknown as Record<string, number | undefined>)[k] != null));
@@ -1326,7 +1376,7 @@ EN  The average position your brand appears at when mentioned in an AI response.
                               <Line type="monotone" dataKey="claude" name="Claude" stroke="#d97757" strokeWidth={3} dot={false} />
                             )}
                             {visPlatforms.Perplexity && (
-                              <Line type="monotone" dataKey="perplexity" name="Gemini" stroke="#22b8cf" strokeWidth={3} dot={false} />
+                              <Line type="monotone" dataKey="perplexity" name="Perplexity" stroke="#22b8cf" strokeWidth={3} dot={false} />
                             )}
                           </>
                         ) : (
