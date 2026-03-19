@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Query Matching</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #ffffff;
+        }
+        /* Custom Checkbox Style */
+        input[type="checkbox"] {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #d1d5db;
+            border-radius: 4px;
+            outline: none;
+            cursor: pointer;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        input[type="checkbox"]:checked {
+            background-color: #3b82f6;
+            border-color: #3b82f6;
+        }
+        input[type="checkbox"]:checked::after {
+            content: '';
+            width: 10px;
+            height: 5px;
+            border-left: 2px solid white;
+            border-bottom: 2px solid white;
+            transform: rotate(-45deg) translateY(-1px);
+            position: absolute;
+        }
+        /* Custom Radio Button Style for Cards */
+        .radio-card-input:checked + .radio-card-content {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+        }
+        .radio-card-input:checked + .radio-card-content .radio-circle {
+            border-color: #3b82f6;
+            border-width: 5px;
+        }
+    </style>
+</head>
+<body class="p-8">
+
+    <div class="max-w-7xl mx-auto bg-white rounded-xl">
+        
+        <!-- Stepper -->
+        <div class="flex items-end border-b border-gray-200 mb-8">
+            <!-- Step 1 -->
+            <div class="flex-1 pb-4 flex items-center justify-center gap-4">
+                <div class="w-8 h-8 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center font-semibold text-sm">1</div>
+                <div>
+                    <div class="font-semibold text-gray-500 text-sm">Keyword Selection</div>
+                    <div class="text-[13px] text-gray-400">Select semantic groups and keywords</div>
+                </div>
+            </div>
+            
+            <!-- Step 2 -->
+            <div class="flex-1 pb-4 flex items-center justify-center gap-4 border-b-2 border-blue-500 -mb-[1px]">
+                <div class="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-semibold text-sm shadow-sm border-[3px] border-blue-100">2</div>
+                <div>
+                    <div class="font-semibold text-gray-800 text-sm">Query Matching</div>
+                    <div class="text-[13px] text-gray-500">Match based on user intent</div>
+                </div>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="flex-1 pb-4 flex items-center justify-center gap-4">
+                <div class="w-8 h-8 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center font-semibold text-sm">3</div>
+                <div>
+                    <div class="font-semibold text-gray-400 text-sm">Content Matrix</div>
+                    <div class="text-[13px] text-gray-400">Generate, manage, and schedule</div>
+                </div>
+            </div>
+
+            <!-- Step 4 -->
+            <div class="flex-1 pb-4 flex items-center justify-center gap-4">
+                <div class="w-8 h-8 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center font-semibold text-sm">4</div>
+                <div>
+                    <div class="font-semibold text-gray-400 text-sm">Published</div>
+                    <div class="text-[13px] text-gray-400">View publish history</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-6">
+            <div>
+                <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2 mb-1.5">
+                    <svg class="w-5 h-5 text-blue-500" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M4 20h16v2H4v-2zM4 10h4v8H4v-8zm6-6h4v14h-4V4zm6 3h4v11h-4V7z"/>
+                    </svg>
+                    <span class="text-blue-500">Keyword → Query Library Mapping</span> 
+                    <span class="text-gray-700 font-medium">matched from 1.3M+ AI conversations to real user questions</span>
+                </h2>
+                <p class="text-sm text-gray-500">The system has extracted key intents from the AI library. Select the queries you need and unselect irrelevant ones.</p>
+            </div>
+            <button onclick="openModal()" class="bg-blue-500 hover:bg-blue-600 text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 shadow-sm">
+                Generate Content Matrix (Selected 5 queries) 
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+            </button>
+        </div>
+
+        <!-- Cards -->
+        <div class="space-y-4">
+            
+            <!-- Card 1 -->
+            <div class="border border-blue-200 rounded-xl p-6 bg-white flex relative shadow-[0_2px_10px_-3px_rgba(59,130,246,0.1)] hover:shadow-[0_4px_14px_-3px_rgba(59,130,246,0.15)] transition-shadow">
+                <button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+
+                <!-- Left Section (Query Info) -->
+                <div class="flex-1 pr-8">
+                    <div class="flex items-center gap-3 mb-4">
+                        <input type="checkbox" checked>
+                        <span class="px-3 py-1 bg-blue-50 text-blue-600 text-xs font-semibold rounded-full border border-blue-100">Research/Learning</span>
+                    </div>
+                    
+                    <div class="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-50/50 border border-amber-100 rounded-md mb-4">
+                        <span class="text-[13px] font-bold text-gray-800">Semantic Group: <span class="text-amber-600 font-semibold">SEO Fundamentals & Awareness</span></span>
+                        <span class="text-gray-300 mx-1">|</span>
+                        <span class="text-[13px] font-bold text-gray-800">Keywords: <span class="text-amber-600 font-semibold">seo · seo meaning</span></span>
+                    </div>
+
+                    <h3 class="text-xl font-bold text-gray-900 tracking-tight">what is seo and why does my business need it</h3>
+                </div>
+
+                <!-- Middle Section (Stats) -->
+                <div class="flex items-center gap-10 px-10 border-l border-gray-100">
+                    <div class="text-center">
+                        <div class="text-xs text-gray-500 font-medium mb-1.5">Monthly<br>Searches</div>
+                        <div class="text-[22px] font-bold text-gray-900 leading-none">162100</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-xs text-gray-500 font-medium mb-1.5">Brand<br>Visibility</div>
+                        <div class="text-[22px] font-bold text-red-500 leading-none">0%</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-xs text-gray-500 font-medium mb-1.5">Est.<br>Acquisition</div>
+                        <div class="text-[22px] font-bold text-emerald-500 leading-none">453</div>
+                    </div>
+                </div>
+
+                <!-- Right Section (Competitors) -->
+                <div class="w-72 pl-10 border-l border-gray-100 flex flex-col justify-center">
+                    <div class="text-xs font-bold text-gray-800 mb-3">Competitor AI Citation Performance</div>
+                    
+                    <div class="space-y-2.5">
+                        <div class="flex items-center text-xs">
+                            <span class="w-20 truncate text-gray-800 font-semibold">Metric Mark...</span>
+                            <div class="flex-1 mx-3 h-2 bg-gray-100 rounded-full overflow-hidden">
+                                <div class="h-full bg-[#ff9b9b] rounded-full" style="width: 67%"></div>
+                            </div>
+                            <span class="w-8 text-right text-gray-500 font-medium">67%</span>
+                        </div>
+                        <div class="flex items-center text-xs">
+                            <span class="w-20 truncate text-gray-800 font-semibold">Digital Mark...</span>
+                            <div class="flex-1 mx-3 h-2 bg-gray-100 rounded-full overflow-hidden">
+                                <div class="h-full bg-[#fbbd5c] rounded-full" style="width: 67%"></div>
+                            </div>
+                            <span class="w-8 text-right text-gray-500 font-medium">67%</span>
+                        </div>
+                        <div class="flex items-center text-xs">
+                            <span class="w-20 truncate text-gray-800 font-semibold">BrightEdge</span>
+                            <div class="flex-1 mx-3 h-2 bg-gray-100 rounded-full overflow-hidden">
+                                <div class="h-full bg-[#34d399] rounded-full" style="width: 53%"></div>
+                            </div>
+                            <span class="w-8 text-right text-gray-500 font-medium">53%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 2 -->
+            <div class="border border-blue-200 rounded-xl p-6 bg-white flex relative shadow-[0_2px_10px_-3px_rgba(59,130,246,0.1)] hover:shadow-[0_4px_14px_-3px_rgba(59,130,246,0.15)] transition-shadow">
+                <button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+
+                <!-- Left Section (Query Info) -->
+                <div class="flex-1 pr-8">
+                    <div class="flex items-center gap-3 mb-4">
+                        <input type="checkbox" checked>
+                        <span class="px-3 py-1 bg-blue-50 text-blue-600 text-xs font-semibold rounded-full border border-blue-100">High Frequency Intent</span>
+                    </div>
+                    
+                    <div class="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-50/50 border border-amber-100 rounded-md mb-4">
+                        <span class="text-[13px] font-bold text-gray-800">Semantic Group: <span class="text-amber-600 font-semibold">SEO Fundamentals & Awareness</span></span>
+                        <span class="text-gray-300 mx-1">|</span>
+                        <span class="text-[13px] font-bold text-gray-800">Keywords: <span class="text-amber-600 font-semibold">seo optimization service</span></span>
+                    </div>
+
+                    <h3 class="text-xl font-bold text-gray-900 tracking-tight">I need help with seo optimization for my online store</h3>
+                </div>
+
+                <!-- Middle Section (Stats) -->
+                <div class="flex items-center gap-10 px-10 border-l border-gray-100">
+                    <div class="text-center">
+                        <div class="text-xs text-gray-500 font-medium mb-1.5">Monthly<br>Searches</div>
+                        <div class="text-[22px] font-bold text-gray-900 leading-none">110000</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-xs text-gray-500 font-medium mb-1.5">Brand<br>Visibility</div>
+                        <div class="text-[22px] font-bold text-red-500 leading-none">0%</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-xs text-gray-500 font-medium mb-1.5">Est.<br>Acquisition</div>
+                        <div class="text-[22px] font-bold text-emerald-500 leading-none">308</div>
+                    </div>
+                </div>
+
+                <!-- Right Section (Competitors) -->
+                <div class="w-72 pl-10 border-l border-gray-100 flex flex-col justify-center">
+                    <div class="text-xs font-bold text-gray-800 mb-3">Competitor AI Citation Performance</div>
+                    
+                    <div class="space-y-2.5">
+                        <div class="flex items-center text-xs">
+                            <span class="w-20 truncate text-gray-800 font-semibold">Shopify</span>
+                            <div class="flex-1 mx-3 h-2 bg-gray-100 rounded-full overflow-hidden">
+                                <div class="h-full bg-[#ff9b9b] rounded-full" style="width: 100%"></div>
+                            </div>
+                            <span class="w-8 text-right text-gray-500 font-medium">100%</span>
+                        </div>
+                        <div class="flex items-center text-xs">
+                            <span class="w-20 truncate text-gray-800 font-semibold">Neil Patel</span>
+                            <div class="flex-1 mx-3 h-2 bg-gray-100 rounded-full overflow-hidden">
+                                <div class="h-full bg-[#fbbd5c] rounded-full" style="width: 53%"></div>
+                            </div>
+                            <span class="w-8 text-right text-gray-500 font-medium">53%</span>
+                        </div>
+                        <div class="flex items-center text-xs">
+                            <span class="w-20 truncate text-gray-800 font-semibold">Hostinger</span>
+                            <div class="flex-1 mx-3 h-2 bg-gray-100 rounded-full overflow-hidden">
+                                <div class="h-full bg-[#34d399] rounded-full" style="width: 53%"></div>
+                            </div>
+                            <span class="w-8 text-right text-gray-500 font-medium">53%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Tracking Modal -->
+    <div id="trackingModal" class="fixed inset-0 bg-gray-900/40 hidden items-center justify-center z-50 transition-opacity backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-2xl w-[520px] max-w-[90%] overflow-hidden transform transition-all">
+            <!-- Header -->
+            <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                <h3 class="text-base font-bold text-gray-900">Enable AI Visibility Tracking</h3>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-md hover:bg-gray-100">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            
+            <!-- Body -->
+            <div class="p-6">
+                <div class="bg-blue-50/50 border border-blue-100 rounded-lg p-4 mb-6">
+                    <div class="flex items-start gap-3">
+                        <div class="mt-0.5 text-blue-500">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+                        </div>
+                        <p class="text-gray-700 text-[14px] leading-relaxed">
+                            Content generation has started. Would you like to simultaneously enable <span class="font-semibold text-gray-900">Query monitoring</span> to quantify your brand's visibility growth in AI search?
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <span class="text-sm font-bold text-gray-800">Monitoring Frequency</span>
+                    <span class="text-xs text-gray-500 ml-2 font-normal">Select how often we should check the ranking</span>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <!-- Option 1 -->
+                    <label class="relative cursor-pointer group">
+                        <input type="radio" name="frequency" value="3" class="peer sr-only radio-card-input">
+                        <div class="radio-card-content flex flex-col p-4 border-2 border-gray-200 rounded-xl transition-all duration-200 hover:border-blue-300">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-[15px] text-gray-900 font-bold">Every 3 days</span>
+                                <div class="radio-circle w-5 h-5 rounded-full border-2 border-gray-300 transition-all duration-200"></div>
+                            </div>
+                            <span class="text-[13px] text-gray-500 mt-1">Best to capture short-term fluctuations</span>
+                        </div>
+                    </label>
+
+                    <!-- Option 2 -->
+                    <label class="relative cursor-pointer group">
+                        <input type="radio" name="frequency" value="7" checked class="peer sr-only radio-card-input">
+                        <div class="radio-card-content flex flex-col p-4 border-2 border-gray-200 rounded-xl transition-all duration-200 hover:border-blue-300">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-[15px] text-gray-900 font-bold">Every 7 days</span>
+                                <div class="radio-circle w-5 h-5 rounded-full border-2 border-gray-300 transition-all duration-200"></div>
+                            </div>
+                            <span class="text-[13px] text-gray-500 mt-1">Recommended to observe long-term trends</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+            
+            <!-- Footer -->
+            <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
+                <button onclick="closeModal()" class="px-4 py-2.5 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors shadow-sm">
+                    Generate Only, No Tracking
+                </button>
+                <button onclick="closeModal()" class="px-4 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm">
+                    Enable Tracking
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openModal() {
+            const modal = document.getElementById('trackingModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('trackingModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+    </script>
+
+</body>
+</html>
